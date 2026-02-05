@@ -2,87 +2,132 @@
 
 ## The Problem
 
-Small kirana and MSME shop owners in India face significant challenges in managing inventory, pricing, and sales. Common issues include:  
-- **No demand forecasting** → overstocking slow-moving items and frequent stock-outs of fast-moving items  
-- **Blind pricing** → copying nearby shops without understanding customer demand or price sensitivity  
-- **High inventory wastage** → due to expiry or dead stock  
-- **No access to analytics tools** → unlike organized retail chains  
+Small kirana and MSME shop owners in India face significant challenges in managing inventory, pricing, sales, and cash flow. Common issues include:
+- **No demand forecasting** → overstocking slow-moving items and frequent stock-outs of fast-moving items
+- **Blind pricing** → copying nearby shops without understanding customer demand or price sensitivity
+- **High inventory wastage** → due to expiry or dead stock
+- **Untracked udhaar (Kaatha)** → money stuck with customers, poor cash-flow visibility
+- **No access to analytics tools** → unlike organized retail chains
 
-**Outcome:** Reduced margins, lost sales, and an inability to compete with organized retail.
+**Outcome:** Reduced margins, blocked working capital, lost sales, and inability to compete with organized retail.
 
-Traditional rule-based methods fail because they cannot handle noisy, incomplete, or highly variable sales data. Small shop owners need simple, actionable guidance without complex dashboards or technical knowledge.
+Traditional rule-based methods fail because they cannot handle noisy, incomplete, or highly variable sales data. Manual kaatha books are error-prone and provide no actionable insight. Small shop owners need simple, actionable guidance without complex dashboards or technical knowledge.
 
 ---
 
 ## The User
 
-**Primary:** Small kirana store owners and MSME retailers across urban, semi-urban, and rural India.  
-- **Characteristics:** Limited technical knowledge, thin margins, low tolerance for complex dashboards, intermittent internet connectivity.  
+**Primary:** Small kirana store owners and MSME retailers across urban, semi-urban, and rural India.
+- **Characteristics:** Limited technical knowledge, thin margins, low tolerance for complex dashboards, intermittent internet connectivity.
 - **Core Need:**  
-> “Tell me what to stock, how much to stock, and how to price — in simple terms.”
+> “Tell me what to stock, how much to stock, how to price — and how much money is stuck in udhaar — in simple terms.”
 
-**Secondary:** Retail assistants and shop employees who help manage inventory and pricing decisions. Automation reduces manual errors and workload.
+**Secondary:** Retail assistants and shop employees who help manage inventory, billing, and credit entries.
 
-**Tertiary:** Local distributors and suppliers who can benefit from insights on demand and inventory trends.
+**Tertiary:** Local distributors and suppliers who benefit from insights on demand, inventory movement, and retailer cash-flow health.
 
 ---
 
 ## The AI Edge
 
-The challenges faced by small retailers are caused not by lack of effort but by **scale, noise, and unpredictability in data**. AI is essential because:  
-- It can **learn demand patterns from noisy and incomplete sales data**  
-- Forecast **short-term demand (7–14 days)** and detect seasonality, festival spikes, and trend shifts  
-- Estimate **price sensitivity and the impact of pricing changes**  
-- Generate **human-readable explanations** for recommendations  
-- Provides **scalable analytics** without requiring technical expertise  
+The challenges faced by small retailers are caused not by lack of effort but by **scale, noise, unpredictability in data, and informal credit practices**. AI is essential because it can:
+- Learn demand patterns from noisy and incomplete sales data
+- Forecast **short-term demand (7–14 days)** and detect seasonality, festivals, and trend shifts
+- Estimate **price sensitivity** and pricing impact
+- Analyze **udhaar behavior** to detect risky customers and cash-flow stress
+- Generate **human-readable explanations**
+- Deliver scalable analytics without technical expertise
 
-Without AI, small shop owners continue to make decisions based on gut feeling, resulting in lost revenue and wastage. With AI, they gain **big-retail-grade insights in a simple, actionable form**.
+Without AI, small shop owners continue to make decisions based on gut feeling, resulting in lost revenue and wastage. With AI, they gain **big-retail-grade insights of inventory, pricing, and cash-flow intelligence**.
+
 
 ---
 
 ## The Success Metric
-
-The success of **Samaan Sathi AI** will be measured through **business KPIs** and **model performance metrics**, reflecting both tangible retailer impact and AI reliability.
 
 ### 1. Business KPIs
 - **Dead stock reduction (%)** – percentage decrease in items that expire or remain unsold  
 - **Stock-out reduction (%)** – percentage decrease in occurrences of fast-moving items running out of stock  
 - **Average daily sales increase (%)** – growth in sales per day after implementing recommendations  
 - **Inventory turnover improvement** – ratio of cost of goods sold to average inventory, indicating faster and more efficient stock movement  
-- **Margin improvement (%)** – increase in profit margins due to optimized pricing  
+- **Margin improvement (%)** – increase in profit margins due to optimized pricing
+- **Udhaar recovery rate (%)** - percentage of outstanding credit recovered over a period
+- **Average udhaar cycle (days)** - Average number of days customers take to repay
 
 ### 2. AI Model Metrics
 - **Forecast accuracy (MAPE)** – Mean Absolute Percentage Error in predicting demand for the next 7–14 days  
 - **Recommendation adoption rate (%)** – proportion of AI-generated recommendations actually implemented by shop owners  
 - **Confidence score reliability** – correlation between AI confidence scores and actual outcomes  
-- **Response latency (seconds)** – time taken from data input to actionable output for the retailer  
+- **Response latency (seconds)** – time taken from data input to actionable output for the retailer 
+- **Udhaar risk prediction accuracy** - Accuracy of identifying customers likely to cross an overdue threshold (e.g., 30 days) based on past repayment patterns.
 
 ---
 
 ## The Features
 
-**Samaan Sathi AI** delivers value by simplifying inventory, pricing, and sales management for small retailers.
-
-### Demand Forecasting & Inventory Guidance
+### 1. Demand Forecasting & Inventory Guidance
 - Forecast short-term demand (7–14 days) for individual items  
 - Suggest optimal quantities to stock, reducing wastage and stock-outs  
-- Detect seasonality, festivals, and trend shifts to adjust orders  
+- Detect seasonality, festivals, and trend shifts to adjust orders
 
-### Pricing Recommendations
-- Suggest price adjustments based on demand sensitivity and local trends  
-- Highlight items that require markdowns or promotions  
+---
 
-### Sales Data Ingestion
-- Accepts input via simple CSV uploads, bill photos, or POS integration  
-- Uses **OCR + NLP** to read and understand sales data  
+### 2. Pricing Recommendations
+- Price suggestions based on demand elasticity
+- Identify markdown and promotion opportunities
+- Explain impact on sales and margins
 
-### Human-Readable Explanations
-- Generates clear, actionable recommendations  
-- Explains the reasoning behind stock and price suggestions in simple terms  
+---
 
-### Alerts & Notifications
-- Warns of potential dead stock or expiring items  
-- Highlights opportunities for profit through trending or seasonal items  
+### 3. Sales & Data Ingestion
+- Input via:
+  - CSV uploads
+  - Bill / receipt photos
+  - POS integration (future)
+- **OCR + NLP** to extract structured data
+- Handles noisy and incomplete inputs
+
+---
+
+### 4. Kaatha / Udhaar Management (Credit Tracking)
+
+Designed for informal kirana-style credit.
+
+**Capabilities:**
+- Customer-wise udhaar ledger
+- Add udhaar manually or via bill OCR
+- Track partial and full repayments
+- Shop-level total outstanding udhaar
+- Customer status: *Paid / Pending / Overdue*
+
+---
+
+### 5. AI-Powered Udhaar Intelligence
+- Identify high-risk customers
+- Suggest customer-wise credit limits
+- Detect items frequently sold on udhaar
+- Alert when total udhaar exceeds safe thresholds
+- Cash-flow-aware inventory and pricing advice
+
+**Example Insight:**  
+> “₹9,500 is pending for more than 30 days from 4 customers. Consider limiting udhaar on low-margin items this week.”
+
+---
+
+### 6. Human-Readable Explanations
+- Simple, non-technical language
+- Clear reasoning behind recommendations
+
+---
+
+### 7. Alerts & Notifications
+- Dead stock / expiry alerts
+- Stock-out risk alerts
+- Seasonal demand alerts
+- Udhaar overdue alerts
+- High-risk customer warnings
+
+Delivered via app and optional SMS/email
 
 ---
 

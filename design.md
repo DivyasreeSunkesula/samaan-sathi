@@ -48,6 +48,7 @@ At a high level:
 - **OCR + NLP** to extract sales info from bills or CSV uploads  
 - **LLM explanation layer** for human-readable recommendation summaries  
 - Confidence scoring to guide shop owners on decision certainty  
+- **Udhaar risk scoring (rule + ML)** to flag customers likely to delay repayment and impact cash flow.
 
 **Key Focus:** Accuracy, explainability, trustworthiness of AI recommendations.
 
@@ -59,7 +60,8 @@ At a high level:
 - Historical sales data from shop CSVs or POS  
 - Local trends and festival calendars  
 - Mock inventory and sales datasets for testing  
-- Configurable business rules (e.g., minimum stock limits, expiry alerts)  
+- Configurable business rules (e.g., minimum stock limits, expiry alerts) 
+- Customer udhaar ledgers to track the due amount 
 
 **Key Focus:** Data accuracy, consistency, and traceability for reliable insights.
 
@@ -91,7 +93,13 @@ At a high level:
 
 ---
 
-### Flow 4: Human Escalation (Optional)
+### Flow 4: Kaatha / Udhaar Flow
+- Udhaar entries and repayments are recorded by the shop owner.
+- shop-level ledgers are updated automatically.
+- AI evaluates overdue patterns and udhaar risk.
+- Alerts and simple suggestions are generated for action.
+
+### Flow 5: Human Escalation (Optional)
 - If AI confidence is low, alerts shop owner to:  
   - Review recommendation manually  
   - Contact supplier or mentor for guidance  
@@ -133,4 +141,4 @@ AWS is used strategically to ensure scalability, reliability, and security:
 
 ---
 
-**Samaan Sathi AI is designed not just as a recommendation engine, but as a dependable AI retail companion that empowers kirana and MSME shop owners with actionable insights for smarter inventory and pricing decisions.**
+**Samaan Sathi AI is designed not just as a recommendation engine, but as a dependable AI retail companion that empowers shop owners manage inventory, pricing, and udhaar intelligently — improving margins, cash flow, and confidence in daily decisions.**

@@ -98,8 +98,9 @@ Password must meet these requirements:
 - At least 1 uppercase letter
 - At least 1 lowercase letter
 - At least 1 number
+- At least 1 special character (optional but recommended)
 
-Example valid password: `TestPass123!`
+Example format: `[YourPass123!]`
 
 ### Issue: DynamoDB Item Not Found
 

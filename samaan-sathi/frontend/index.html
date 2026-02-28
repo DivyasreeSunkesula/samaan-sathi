@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Samaan Sathi AI - Smart Retail Companion</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛒</text></svg>">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <span class="logo">🛒</span>
+                <span class="brand-name">Samaan Sathi AI</span>
+            </div>
+            <div class="nav-menu" id="navMenu">
+                <a href="#dashboard" class="nav-link active" data-page="dashboard">Dashboard</a>
+                <a href="#inventory" class="nav-link" data-page="inventory">Inventory</a>
+                <a href="#udhaar" class="nav-link" data-page="udhaar">Udhaar</a>
+                <a href="#forecast" class="nav-link" data-page="forecast">Forecast</a>
+                <a href="#pricing" class="nav-link" data-page="pricing">Pricing</a>
+                <a href="#ocr" class="nav-link" data-page="ocr">Bill Scanner</a>
+            </div>
+            <div class="nav-actions">
+                <span class="shop-name" id="shopName"></span>
+                <button class="btn-logout" onclick="logout()">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Login/Register Screen -->
+    <div id="authScreen" class="auth-screen">
+        <div class="auth-container">
+            <div class="auth-header">
+                <h1>🛒 Samaan Sathi AI</h1>
+                <p>Your Smart Retail Companion</p>
+            </div>
+            
+            <div class="auth-tabs">
+                <button class="tab-btn active" onclick="showAuthTab('login')">Login</button>
+                <button class="tab-btn" onclick="showAuthTab('register')">Register</button>
+            </div>
+
+            <!-- Login Form -->
+            <div id="loginForm" class="auth-form">
+                <div class="form-group">
+                    <label for="loginUsername">Username</label>
+                    <input type="text" id="loginUsername" placeholder="Enter your username" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" placeholder="Enter your password" required>
+                </div>
+                <button class="btn-primary" onclick="login()">Login</button>
+                <a href="#" class="forgot-password-link" onclick="showForgotPassword(); return false;">Forgot Password?</a>
+                <div id="loginError" class="error-message"></div>
+            </div>
+
+            <!-- Register Form -->
+            <div id="registerForm" class="auth-form" style="display:none;">
+                <div class="form-group">
+                    <label for="regUsername">Username *</label>
+                    <input type="text" id="regUsername" placeholder="Choose a unique username" required>
+                </div>
+                <div class="form-group">
+                    <label for="regPassword">Password *</label>
+                    <input type="password" id="regPassword" placeholder="Min 8 characters" required>
+                </div>
+                <div class="form-group">
+                    <label for="regEmail">Email *</label>
+                    <input type="email" id="regEmail" placeholder="your@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="regPhone">Phone Number *</label>
+                    <input type="tel" id="regPhone" placeholder="+91XXXXXXXXXX" required>
+                </div>
+                <div class="form-group">
+                    <label for="regFullName">Full Name *</label>
+                    <input type="text" id="regFullName" placeholder="Your full name" required>
+                </div>
+                <div class="form-group">
+                    <label for="regShopName">Shop Name</label>
+                    <input type="text" id="regShopName" placeholder="Your shop's name (optional)">
+                </div>
+                <button class="btn-primary" onclick="register()">Register</button>
+                <div id="registerError" class="error-message"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="mainApp" class="main-app" style="display:none;">
+        
+        <!-- Dashboard Page -->
+        <div id="dashboardPage" class="page active">
+            <div class="page-header">
+                <h2>Dashboard</h2>
+                <p>Overview of your shop performance</p>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">📦</div>
+                    <div class="stat-content">
+                        <h3 id="totalItems">0</h3>
+                        <p>Total Items</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">⚠️</div>
+                    <div class="stat-content">
+                        <h3 id="lowStockItems">0</h3>
+                        <p>Low Stock Items</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-content">
+                        <h3 id="totalUdhaar">₹0</h3>
+                        <p>Total Udhaar</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🔔</div>
+                    <div class="stat-content">
+                        <h3 id="activeAlerts">0</h3>
+                        <p>Active Alerts</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alerts Section -->
+            <div class="section-card">
+                <h3>🔔 Recent Alerts</h3>
+                <div id="dashboardAlerts" class="alerts-list"></div>
+            </div>
+
+            <!-- Recommendations Section -->
+            <div class="section-card">
+                <h3>💡 AI Recommendations</h3>
+                <div id="dashboardRecommendations" class="recommendations-list"></div>
+            </div>
+        </div>
+
+        <!-- Inventory Page -->
+        <div id="inventoryPage" class="page">
+            <div class="page-header">
+                <h2>Inventory Management</h2>
+                <button class="btn-primary" onclick="showAddItemModal()">+ Add Item</button>
+            </div>
+
+            <div class="filters">
+                <input type="text" id="searchInventory" placeholder="Search items..." onkeyup="filterInventory()">
+                <select id="categoryFilter" onchange="filterInventory()">
+                    <option value="">All Categories</option>
+                    <option value="groceries">Groceries</option>
+                    <option value="beverages">Beverages</option>
+                    <option value="snacks">Snacks</option>
+                    <option value="personal-care">Personal Care</option>
+                    <option value="household">Household</option>
+                </select>
+            </div>
+
+            <div id="inventoryList" class="inventory-grid"></div>
+        </div>
+
+        <!-- Udhaar Page -->
+        <div id="udhaarPage" class="page">
+            <div class="page-header">
+                <h2>Udhaar Management</h2>
+                <button class="btn-primary" onclick="showAddUdhaarModal()">+ Add Udhaar</button>
+            </div>
+
+            <div class="udhaar-summary">
+                <div class="summary-card">
+                    <h4>Total Outstanding</h4>
+                    <p class="amount" id="udhaarTotal">₹0</p>
+                </div>
+                <div class="summary-card">
+                    <h4>Total Customers</h4>
+                    <p class="count" id="udhaarCustomers">0</p>
+                </div>
+                <div class="summary-card">
+                    <h4>Overdue</h4>
+                    <p class="count overdue" id="udhaarOverdue">0</p>
+                </div>
+            </div>
+
+            <div class="filters">
+                <input type="text" id="searchUdhaar" placeholder="Search by customer name..." onkeyup="filterUdhaar()">
+                <select id="udhaarStatusFilter" onchange="filterUdhaar()">
+                    <option value="">All Status</option>
+                    <option value="PENDING">Pending</option>
+                    <option value="OVERDUE">Overdue</option>
+                    <option value="PAID">Paid</option>
+                </select>
+            </div>
+
+            <div id="udhaarList" class="udhaar-list"></div>
+        </div>
+
+        <!-- Forecast Page -->
+        <div id="forecastPage" class="page">
+            <div class="page-header">
+                <h2>Demand Forecast</h2>
+            </div>
+
+            <div class="forecast-controls" style="margin-bottom: 2rem; padding: 1.5rem; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Select Items:</label>
+                    <div id="forecastItemCheckboxes" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; padding: 0.75rem;">
+                        <p style="color: #666;">Loading items...</p>
+                    </div>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Forecast Days:</label>
+                    <input type="number" id="forecastDays" value="7" min="1" max="30"
+                           style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                <button class="btn-primary" onclick="generateForecast()">🔄 Generate Forecast</button>
+            </div>
+
+            <div id="forecastList" class="forecast-list"></div>
+        </div>
+
+        <!-- Pricing Page -->
+        <div id="pricingPage" class="page">
+            <div class="page-header">
+                <h2>Pricing Recommendations</h2>
+                <button class="btn-primary" onclick="getPricingRecommendations()">🔄 Get Recommendations</button>
+            </div>
+
+            <div id="pricingList" class="pricing-list"></div>
+        </div>
+
+        <!-- OCR Page -->
+        <div id="ocrPage" class="page">
+            <div class="page-header">
+                <h2>Bill Scanner</h2>
+                <p>Upload bill/receipt images to extract data</p>
+            </div>
+
+            <div class="upload-section">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">📸</div>
+                    <p>Click to upload or drag & drop</p>
+                    <p class="upload-hint">Supports JPG, PNG</p>
+                    <input type="file" id="billImage" accept="image/*" onchange="processBill()" style="display:none;">
+                </div>
+                <button class="btn-primary" onclick="document.getElementById('billImage').click()">Choose File</button>
+            </div>
+
+            <div id="ocrResult" class="ocr-result" style="display:none;"></div>
+        </div>
+
+    </div>
+
+    <!-- Add Item Modal -->
+    <div id="addItemModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add Inventory Item</h3>
+                <span class="close" onclick="closeModal('addItemModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <label for="itemName">Item Name *</label>
+                <input type="text" id="itemName" placeholder="e.g., Rice 1kg" required>
+                
+                <label for="itemCategory">Category *</label>
+                <select id="itemCategory" required>
+                    <option value="">Select Category</option>
+                    <option value="groceries">Groceries</option>
+                    <option value="beverages">Beverages</option>
+                    <option value="snacks">Snacks</option>
+                    <option value="personal-care">Personal Care</option>
+                    <option value="household">Household</option>
+                </select>
+                
+                <label for="itemQuantity">Quantity *</label>
+                <input type="number" id="itemQuantity" placeholder="e.g., 50" required>
+                
+                <label for="itemUnit">Unit</label>
+                <input type="text" id="itemUnit" placeholder="e.g., kg, pcs, ltr" value="pcs">
+                
+                <label for="itemCostPrice">Cost Price (₹) *</label>
+                <input type="number" id="itemCostPrice" placeholder="e.g., 40" step="0.01" required>
+                
+                <label for="itemSellingPrice">Selling Price (₹) *</label>
+                <input type="number" id="itemSellingPrice" placeholder="e.g., 50" step="0.01" required>
+                
+                <label for="itemMinStock">Minimum Stock Level</label>
+                <input type="number" id="itemMinStock" placeholder="Alert when below this" value="10">
+                
+                <label for="itemExpiryDate">Expiry Date (Optional)</label>
+                <input type="date" id="itemExpiryDate">
+                
+                <button class="btn-primary" onclick="addInventoryItem()">➕ Add Item</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Udhaar Modal -->
+    <div id="addUdhaarModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add Udhaar Entry</h3>
+                <span class="close" onclick="closeModal('addUdhaarModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <label for="udhaarCustomerName">Customer Name *</label>
+                <input type="text" id="udhaarCustomerName" placeholder="e.g., Ramesh Kumar" required>
+                
+                <label for="udhaarAmount">Amount (₹) *</label>
+                <input type="number" id="udhaarAmount" placeholder="e.g., 500" step="0.01" required>
+                
+                <label for="udhaarDueDate">Due Date *</label>
+                <input type="date" id="udhaarDueDate" required min="">
+                
+                <label for="udhaarItems">Items (Optional)</label>
+                <textarea id="udhaarItems" placeholder="e.g., Rice, Oil, Sugar" rows="3"></textarea>
+                
+                <button class="btn-primary" onclick="addUdhaarEntry()">Add Udhaar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Record Payment Modal -->
+    <div id="paymentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Record Payment</h3>
+                <span class="close" onclick="closeModal('paymentModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p>Customer: <strong id="paymentCustomerName"></strong></p>
+                <p>Outstanding: <strong id="paymentOutstanding"></strong></p>
+                <input type="hidden" id="paymentCustomerId">
+                <input type="number" id="paymentAmount" placeholder="Payment Amount" step="0.01" required>
+                <button class="btn-primary" onclick="recordPayment()">Record Payment</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Forgot Password Modal -->
+    <div id="forgotPasswordModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Reset Password</h3>
+                <span class="close" onclick="closeModal('forgotPasswordModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p>Enter your username, email, and new password to reset.</p>
+                <div class="form-group">
+                    <label for="resetUsername">Username *</label>
+                    <input type="text" id="resetUsername" placeholder="Your username" required>
+                </div>
+                <div class="form-group">
+                    <label for="resetEmail">Email *</label>
+                    <input type="email" id="resetEmail" placeholder="your@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="resetNewPassword">New Password *</label>
+                    <input type="password" id="resetNewPassword" placeholder="Min 8 characters" required>
+                </div>
+                <div class="form-group">
+                    <label for="resetConfirmPassword">Confirm Password *</label>
+                    <input type="password" id="resetConfirmPassword" placeholder="Re-enter password" required>
+                </div>
+                <button class="btn-primary" onclick="simpleResetPassword()">Reset Password</button>
+                <div id="resetPasswordError" class="error-message"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

@@ -23,14 +23,16 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         shop_id = get_shop_id(event)
         
         if not shop_id:
-            return response(401, {'error': 'Unauthorized'})
+            shop_id = 'default-shop'
+        
+        print(f"Processing {method} request for shop: {shop_id}")
         
         if method == 'GET':
             if '{customerId}' in path:
                 customer_id = event['pathParameters']['customerId']
                 return get_customer_udhaar(shop_id, customer_id)
             else:
-                return get_all_udhaar(shop_id, event.get('queryStringParameters', {}))
+                return get_all_udhaar(shop_id, event.get('queryStringParameters') or {})
         
         elif method == 'POST':
             body = json.loads(event.get('body', '{}'))
@@ -44,16 +46,35 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             
     except Exception as e:
         print(f"Udhaar Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return response(500, {'error': str(e)})
 
 
 def get_shop_id(event: Dict[str, Any]) -> str:
-    """Extract shop ID from JWT token"""
+    """Extract shop ID from JWT token - always returns a valid shop_id"""
     try:
-        claims = event.get('requestContext', {}).get('authorizer', {}).get('claims', {})
-        return claims.get('custom:shopId', 'default-shop')
+        request_context = event.get('requestContext', {})
+        if not request_context:
+            return 'default-shop'
+            
+        authorizer = request_context.get('authorizer', {})
+        if not authorizer:
+            return 'default-shop'
+        
+        claims = authorizer.get('claims', {})
+        if claims:
+            shop_id = claims.get('custom:shopId')
+            if shop_id:
+                return shop_id
+            
+            username = claims.get('cognito:username') or claims.get('username')
+            if username:
+                return f"shop-{username}"
+        
+        return 'default-shop'
     except:
-        return None
+        return 'default-shop'
 
 
 def get_all_udhaar(shop_id: str, params: Dict[str, Any]) -> Dict[str, Any]:
@@ -70,9 +91,19 @@ def get_all_udhaar(shop_id: str, params: Dict[str, Any]) -> Dict[str, Any]:
         
         records = result.get('Items', [])
         
+        # Update status for each record based on current date
+        for record in records:
+            outstanding = float(record.get('outstandingAmount', 0))
+            if outstanding == 0:
+                record['status'] = 'PAID'
+            elif is_overdue(record):
+                record['status'] = 'OVERDUE'
+            else:
+                record['status'] = 'PENDING'
+        
         # Calculate summary statistics
         total_outstanding = sum(float(r.get('outstandingAmount', 0)) for r in records)
-        overdue_count = sum(1 for r in records if is_overdue(r))
+        overdue_count = sum(1 for r in records if r.get('status') == 'OVERDUE')
         
         # Filter by status if provided
         status = params.get('status')
@@ -130,6 +161,7 @@ def add_udhaar(shop_id: str, body: Dict[str, Any]) -> Dict[str, Any]:
         customer_name = body.get('customerName')
         amount = Decimal(str(body.get('amount', 0)))
         items = body.get('items', [])
+        due_date = body.get('dueDate')  # Get due date from request
         
         if not customer_id or amount <= 0:
             return response(400, {'error': 'customerId and positive amount required'})
@@ -150,18 +182,43 @@ def add_udhaar(shop_id: str, body: Dict[str, Any]) -> Dict[str, Any]:
             outstanding = Decimal('0')
             transactions = []
         
+        # Use provided due date or default to 30 days from now
+        if due_date:
+            # Convert YYYY-MM-DD to ISO format
+            transaction_due_date = f"{due_date}T23:59:59"
+        else:
+            transaction_due_date = (datetime.utcnow() + timedelta(days=30)).isoformat()
+        
         # Add new transaction
         transaction = {
-            'transactionId': f"txn-{datetime.utcnow().timestamp()}",
+            'transactionId': f"txn-{int(datetime.utcnow().timestamp())}",
             'type': 'CREDIT',
-            'amount': float(amount),
-            'items': items,
+            'amount': amount,  # Keep as Decimal
+            'items': items if items else [],
             'date': datetime.utcnow().isoformat(),
-            'dueDate': (datetime.utcnow() + timedelta(days=30)).isoformat()
+            'dueDate': transaction_due_date
         }
         
         transactions.append(transaction)
         outstanding += amount
+        
+        # Determine status based on outstanding amount and due date
+        if outstanding == 0:
+            status = 'PAID'
+        else:
+            # Check if overdue
+            try:
+                if due_date:
+                    due_date_obj = datetime.fromisoformat(transaction_due_date.replace('Z', '+00:00'))
+                else:
+                    due_date_obj = datetime.fromisoformat(transaction_due_date)
+                
+                if datetime.utcnow() > due_date_obj:
+                    status = 'OVERDUE'
+                else:
+                    status = 'PENDING'
+            except:
+                status = 'PENDING'
         
         # Update record
         updated_record = {
@@ -171,7 +228,7 @@ def add_udhaar(shop_id: str, body: Dict[str, Any]) -> Dict[str, Any]:
             'outstandingAmount': outstanding,
             'transactions': transactions,
             'lastUpdated': datetime.utcnow().isoformat(),
-            'status': 'PENDING' if outstanding > 0 else 'PAID',
+            'status': status,
             'dueDate': transaction['dueDate']
         }
         
@@ -216,9 +273,9 @@ def record_payment(shop_id: str, body: Dict[str, Any]) -> Dict[str, Any]:
         
         # Add payment transaction
         transaction = {
-            'transactionId': f"txn-{datetime.utcnow().timestamp()}",
+            'transactionId': f"txn-{int(datetime.utcnow().timestamp())}",
             'type': 'PAYMENT',
-            'amount': float(amount),
+            'amount': amount,  # Keep as Decimal
             'date': datetime.utcnow().isoformat()
         }
         

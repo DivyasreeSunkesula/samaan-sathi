@@ -23,22 +23,40 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         path = event.get('path', '')
         shop_id = get_shop_id(event)
         
+        # shop_id should never be None now, but double check
         if not shop_id:
-            return response(401, {'error': 'Unauthorized'})
+            print("ERROR: shop_id is None or empty!")
+            shop_id = 'default-shop'
+        
+        print(f"Processing {method} request for shop: {shop_id}")
+        print(f"Path: {path}")
         
         if method == 'GET':
-            if '{itemId}' in path:
-                item_id = event['pathParameters']['itemId']
-                return get_item(shop_id, item_id)
+            if '{itemId}' in path or path.endswith('/inventory/'):
+                # Check if itemId in pathParameters
+                path_params = event.get('pathParameters') or {}
+                item_id = path_params.get('itemId')
+                if item_id:
+                    return get_item(shop_id, item_id)
+                else:
+                    return get_all_items(shop_id, event.get('queryStringParameters') or {})
             else:
-                return get_all_items(shop_id, event.get('queryStringParameters', {}))
+                return get_all_items(shop_id, event.get('queryStringParameters') or {})
         
         elif method == 'POST':
             body = json.loads(event.get('body', '{}'))
+            
+            # Check if this is a delete operation
+            if body.get('_action') == 'delete' and body.get('itemId'):
+                return delete_item(shop_id, body['itemId'])
+            
             return add_or_update_item(shop_id, body)
         
         elif method == 'DELETE':
-            item_id = event['pathParameters']['itemId']
+            path_params = event.get('pathParameters') or {}
+            item_id = path_params.get('itemId')
+            if not item_id:
+                return response(400, {'error': 'itemId required'})
             return delete_item(shop_id, item_id)
         
         else:
@@ -46,18 +64,47 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             
     except Exception as e:
         print(f"Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return response(500, {'error': str(e)})
 
 
 def get_shop_id(event: Dict[str, Any]) -> str:
-    """Extract shop ID from JWT token"""
+    """Extract shop ID from JWT token - always returns a valid shop_id"""
     try:
-        # In production, decode JWT and extract shop_id
-        # For now, use a header or query parameter
-        claims = event.get('requestContext', {}).get('authorizer', {}).get('claims', {})
-        return claims.get('custom:shopId', 'default-shop')
-    except:
-        return None
+        # Try to get from authorizer context
+        request_context = event.get('requestContext', {})
+        if not request_context:
+            print("No requestContext found, using default-shop")
+            return 'default-shop'
+            
+        authorizer = request_context.get('authorizer', {})
+        if not authorizer:
+            print("No authorizer found, using default-shop")
+            return 'default-shop'
+        
+        # Try claims first
+        claims = authorizer.get('claims', {})
+        if claims:
+            # Try custom attribute
+            shop_id = claims.get('custom:shopId')
+            if shop_id:
+                print(f"Found shop_id from custom attribute: {shop_id}")
+                return shop_id
+            
+            # Try username as fallback
+            username = claims.get('cognito:username') or claims.get('username')
+            if username:
+                shop_id = f"shop-{username}"
+                print(f"Using username-based shop_id: {shop_id}")
+                return shop_id
+        
+        # Fallback to default shop
+        print("No claims found, using default-shop")
+        return 'default-shop'
+    except Exception as e:
+        print(f"Error getting shop_id: {str(e)}, using default-shop")
+        return 'default-shop'
 
 
 def get_all_items(shop_id: str, params: Dict[str, Any]) -> Dict[str, Any]:

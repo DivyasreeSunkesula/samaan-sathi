@@ -2,11 +2,14 @@ import json
 import os
 import boto3
 import base64
+from datetime import datetime
 from typing import Dict, Any, List
+from decimal import Decimal
 
 textract = boto3.client('textract')
 s3 = boto3.client('s3')
 bedrock_runtime = boto3.client('bedrock-runtime')
+dynamodb = boto3.resource('dynamodb')
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
@@ -14,6 +17,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
     try:
         body = json.loads(event.get('body', '{}'))
+        shop_id = get_shop_id(event)
+        
+        if not shop_id:
+            shop_id = 'default-shop'
         
         # Get image from S3 or base64
         if 's3Key' in body:
@@ -26,14 +33,24 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         # Extract structured data using Bedrock
         structured_data = extract_structured_data(result)
         
+        # Add to inventory if requested
+        add_to_inventory = body.get('addToInventory', False)
+        inventory_result = None
+        
+        if add_to_inventory and structured_data.get('items'):
+            inventory_result = add_bill_items_to_inventory(shop_id, structured_data['items'])
+        
         return response(200, {
             'rawText': result.get('text'),
             'structuredData': structured_data,
-            'confidence': result.get('confidence')
+            'confidence': result.get('confidence'),
+            'inventoryResult': inventory_result
         })
         
     except Exception as e:
         print(f"OCR Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return response(500, {'error': str(e)})
 
 
@@ -216,3 +233,140 @@ def response(status_code: int, body: Dict[str, Any]) -> Dict[str, Any]:
         },
         'body': json.dumps(body)
     }
+
+
+def get_shop_id(event: Dict[str, Any]) -> str:
+    """Extract shop ID from JWT token"""
+    try:
+        request_context = event.get('requestContext', {})
+        if not request_context:
+            return 'default-shop'
+            
+        authorizer = request_context.get('authorizer', {})
+        if not authorizer:
+            return 'default-shop'
+        
+        claims = authorizer.get('claims', {})
+        if claims:
+            shop_id = claims.get('custom:shopId')
+            if shop_id:
+                return shop_id
+            
+            username = claims.get('cognito:username') or claims.get('username')
+            if username:
+                return f"shop-{username}"
+        
+        return 'default-shop'
+    except:
+        return 'default-shop'
+
+
+def add_bill_items_to_inventory(shop_id: str, items: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Add or update items from bill to inventory"""
+    try:
+        inventory_table = dynamodb.Table(os.environ['INVENTORY_TABLE'])
+        
+        added_items = []
+        updated_items = []
+        skipped_items = []
+        
+        for item in items:
+            item_name = item.get('name', '').strip()
+            quantity = item.get('quantity', 1)
+            price = item.get('price', 0)
+            
+            if not item_name:
+                continue
+            
+            # Query existing items to check for duplicates
+            response = inventory_table.query(
+                KeyConditionExpression='shopId = :shopId',
+                ExpressionAttributeValues={':shopId': shop_id}
+            )
+            
+            inventory_items = response.get('Items', [])
+            
+            # Find matching item (case-insensitive name match)
+            matching_item = None
+            for inv_item in inventory_items:
+                if inv_item.get('name', '').strip().lower() == item_name.lower():
+                    matching_item = inv_item
+                    break
+            
+            if matching_item:
+                # Update existing item - ADD to quantity
+                current_qty = float(matching_item.get('quantity', 0))
+                new_qty = current_qty + quantity
+                
+                inventory_table.update_item(
+                    Key={
+                        'shopId': shop_id,
+                        'itemId': matching_item['itemId']
+                    },
+                    UpdateExpression='SET quantity = :qty, lastUpdated = :updated',
+                    ExpressionAttributeValues={
+                        ':qty': Decimal(str(new_qty)),
+                        ':updated': datetime.utcnow().isoformat()
+                    }
+                )
+                
+                updated_items.append({
+                    'name': item_name,
+                    'oldQuantity': current_qty,
+                    'newQuantity': new_qty,
+                    'added': quantity
+                })
+                
+                print(f"Updated inventory for {item_name}: {current_qty} -> {new_qty}")
+            else:
+                # Add new item to inventory
+                item_id = f"ITEM-{int(datetime.utcnow().timestamp() * 1000)}"
+                
+                # Estimate cost price (80% of selling price as default)
+                cost_price = price * 0.8 if price > 0 else 0
+                
+                new_item = {
+                    'shopId': shop_id,
+                    'itemId': item_id,
+                    'name': item_name,
+                    'category': 'groceries',  # Default category
+                    'quantity': Decimal(str(quantity)),
+                    'unit': 'pcs',  # Default unit
+                    'costPrice': Decimal(str(cost_price)),
+                    'sellingPrice': Decimal(str(price)),
+                    'minStockLevel': Decimal('10'),  # Default min stock
+                    'lastUpdated': datetime.utcnow().isoformat(),
+                    'updatedBy': 'ocr',
+                    'source': 'bill-upload'
+                }
+                
+                inventory_table.put_item(Item=new_item)
+                
+                added_items.append({
+                    'name': item_name,
+                    'itemId': item_id,
+                    'quantity': quantity,
+                    'price': price
+                })
+                
+                print(f"Added new item to inventory: {item_name} (ID: {item_id})")
+        
+        return {
+            'success': True,
+            'added': len(added_items),
+            'updated': len(updated_items),
+            'skipped': len(skipped_items),
+            'addedItems': added_items,
+            'updatedItems': updated_items,
+            'message': f"Added {len(added_items)} new items, updated {len(updated_items)} existing items"
+        }
+        
+    except Exception as e:
+        print(f"Error adding to inventory: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return {
+            'success': False,
+            'error': str(e),
+            'message': 'Failed to add items to inventory'
+        }

@@ -119,7 +119,7 @@ aws cognito-idp admin-create-user \
   --user-pool-id YOUR_USER_POOL_ID \
   --username admin \
   --user-attributes Name=email,Value=admin@example.com \
-  --temporary-password TempPass123!
+
 ```
 
 ### 2. Configure CloudWatch Alarms
@@ -158,20 +158,20 @@ aws s3 cp sample-data/bills/ s3://samaan-sathi-bills-YOUR_ACCOUNT_ID/sample/ --r
 curl -X POST https://your-api-url/auth/register \
   -H "Content-Type: application/json" \
   -d '{
-    "username": "testuser",
-    "password": "TestPass123!",
-    "email": "test@example.com",
-    "phone": "+919876543210",
-    "fullName": "Test User",
-    "shopName": "Test Shop"
+    "username": "[your-username]",
+    "password": "[your-password]",
+    "email": "[your-email]",
+    "phone": "+91XXXXXXXXXX",
+    "fullName": "[Your Name]",
+    "shopName": "[Your Shop]"
   }'
 
 # Login
 curl -X POST https://your-api-url/auth/login \
   -H "Content-Type: application/json" \
   -d '{
-    "username": "testuser",
-    "password": "TestPass123!"
+    "username": "[your-username]",
+    "password": "[your-password]"
   }'
 ```
 

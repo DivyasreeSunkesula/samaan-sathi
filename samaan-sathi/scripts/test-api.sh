@@ -24,7 +24,7 @@ REGISTER_RESPONSE=$(curl -s -X POST "$API_URL/auth/register" \
     -H "Content-Type: application/json" \
     -d '{
         "username": "testuser",
-        "password": "TestPass123!",
+        "password": "[your-password]",
         "email": "test@example.com",
         "phone": "+919876543210",
         "fullName": "Test User",
@@ -40,7 +40,7 @@ LOGIN_RESPONSE=$(curl -s -X POST "$API_URL/auth/login" \
     -H "Content-Type: application/json" \
     -d '{
         "username": "testuser",
-        "password": "TestPass123!"
+        "password": "[your-password]"
     }')
 
 echo "Response: $LOGIN_RESPONSE"

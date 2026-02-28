@@ -1,0 +1,21 @@
+{
+  "name": "samaan-sathi-ai",
+  "version": "1.0.0",
+  "description": "AI-powered retail companion for small shop owners",
+  "scripts": {
+    "install-all": "npm install && cd backend && pip install -r requirements.txt && cd ../frontend && npm install",
+    "deploy": "cd infrastructure && cdk deploy --all",
+    "destroy": "cd infrastructure && cdk destroy --all",
+    "test": "npm run test --workspaces",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\""
+  },
+  "workspaces": [
+    "infrastructure",
+    "frontend"
+  ],
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "prettier": "^3.2.5"
+  }
+}

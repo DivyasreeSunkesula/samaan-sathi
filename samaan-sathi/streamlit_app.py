@@ -527,10 +527,15 @@ def show_sales():
     st.title("💰 Sales History")
     
     if not st.session_state.shop_data:
-        st.info("👈 Load demo data first")
+        st.info("👈 Load data first")
         return
     
     data = st.session_state.shop_data
+    
+    if not data['salesHistory']:
+        st.info("No sales recorded yet")
+        return
+    
     df = pd.DataFrame(data['salesHistory'][-20:])
     st.dataframe(df[['saleId', 'customerName', 'totalAmount', 'paymentMethod', 'timestamp']], use_container_width=True)
 
@@ -538,7 +543,7 @@ def show_udhaar():
     st.title("📝 Udhaar Management")
     
     if not st.session_state.shop_data:
-        st.info("👈 Load demo data first")
+        st.info("👈 Load data first")
         return
     
     data = st.session_state.shop_data
@@ -546,12 +551,19 @@ def show_udhaar():
     # Show credit scores if AI results available
     if st.session_state.ai_results and st.button("🤖 Show Credit Risk Scores"):
         scores = list(st.session_state.ai_results['creditScores'].values())
-        st.subheader("Credit Risk Scores")
-        df = pd.DataFrame(scores)
-        st.dataframe(df, use_container_width=True)
+        if scores:
+            st.subheader("Credit Risk Scores")
+            df = pd.DataFrame(scores)
+            st.dataframe(df, use_container_width=True)
+        else:
+            st.info("No credit scores available")
         st.divider()
     
     # Udhaar table
+    if not data['udhaarRecords']:
+        st.info("No udhaar records yet")
+        return
+    
     df = pd.DataFrame(data['udhaarRecords'])
     st.dataframe(df[['customerName', 'amount', 'paidAmount', 'remainingAmount', 'status']], use_container_width=True)
 
@@ -559,7 +571,7 @@ def show_forecast():
     st.title("📈 Demand Forecast")
     
     if not st.session_state.shop_data:
-        st.info("👈 Load demo data first")
+        st.info("👈 Load data first")
         return
     
     if not st.session_state.ai_results:
@@ -567,6 +579,10 @@ def show_forecast():
         return
     
     forecasts = st.session_state.ai_results['forecasts']
+    
+    if not forecasts:
+        st.info("No forecasts available. Add inventory items first.")
+        return
     
     for item_id, forecast in list(forecasts.items())[:5]:
         with st.expander(f"📊 {forecast['itemName']}", expanded=True):
@@ -608,78 +624,117 @@ def show_ocr_scanner():
     if uploaded_file is not None:
         # Display image
         image = Image.open(uploaded_file)
-        st.image(image, caption='Uploaded Bill', use_column_width=True)
+        col1, col2 = st.columns([1, 1])
         
-        if st.button("🤖 Process Bill with AI OCR", type="primary"):
-            with st.spinner("Processing image..."):
-                # Simulate OCR processing
-                import time
-                time.sleep(2)
-                
-                # Mock OCR results
-                extracted_items = [
-                    {'name': 'Rice 1kg', 'quantity': 2, 'price': 50},
-                    {'name': 'Sugar 1kg', 'quantity': 1, 'price': 48},
-                    {'name': 'Tea Powder', 'quantity': 1, 'price': 100}
-                ]
-                
-                st.success("✅ Bill processed successfully!")
-                
-                st.subheader("Extracted Items")
-                df = pd.DataFrame(extracted_items)
-                st.dataframe(df, use_container_width=True)
-                
-                total = sum(item['quantity'] * item['price'] for item in extracted_items)
-                st.metric("Total Amount", f"₹{total}")
-                
-                col1, col2 = st.columns(2)
-                with col1:
-                    if st.button("➕ Add to Inventory", use_container_width=True):
-                        data = st.session_state.shop_data
-                        added = 0
-                        for item in extracted_items:
-                            # Check if item exists
-                            existing = next((i for i in data['inventory'] if i['name'] == item['name']), None)
-                            if existing:
-                                existing['quantity'] += item['quantity']
-                            else:
-                                new_item = {
-                                    'itemId': f'ITEM{len(data["inventory"])+1:03d}',
-                                    'name': item['name'],
-                                    'category': 'groceries',
-                                    'quantity': item['quantity'],
-                                    'costPrice': item['price'] * 0.8,
-                                    'sellingPrice': item['price'],
-                                    'salesVelocity': 2.0
-                                }
-                                data['inventory'].append(new_item)
-                                added += 1
-                        st.success(f"✅ Added {added} new items to inventory")
-                        st.rerun()
-                
-                with col2:
-                    if st.button("💰 Record as Sale", use_container_width=True):
-                        data = st.session_state.shop_data
-                        sale = {
-                            'saleId': f'SALE{len(data["salesHistory"])+1:04d}',
-                            'customerId': None,
-                            'customerName': 'Walk-in',
-                            'totalAmount': total,
-                            'paymentMethod': 'CASH',
-                            'timestamp': datetime.now().isoformat()
-                        }
-                        data['salesHistory'].append(sale)
-                        st.success("✅ Sale recorded")
-                        st.rerun()
+        with col1:
+            st.image(image, caption='Uploaded Bill', use_column_width=True)
+        
+        with col2:
+            if st.button("🤖 Process Bill with AI OCR", type="primary", use_container_width=True):
+                with st.spinner("Processing image with AI..."):
+                    # Try real OCR first, fallback to mock
+                    try:
+                        import pytesseract
+                        text = pytesseract.image_to_string(image)
+                        st.text_area("Extracted Text", text, height=200)
+                        
+                        # Parse text for items (simple pattern matching)
+                        lines = text.split('\n')
+                        extracted_items = []
+                        for line in lines:
+                            # Look for patterns like "Item Name 2 50" or "Item Name x2 ₹50"
+                            if any(char.isdigit() for char in line) and len(line.strip()) > 3:
+                                parts = line.split()
+                                if len(parts) >= 3:
+                                    name = ' '.join(parts[:-2])
+                                    try:
+                                        qty = int(''.join(filter(str.isdigit, parts[-2])))
+                                        price = float(''.join(filter(str.isdigit, parts[-1])))
+                                        if name and qty > 0 and price > 0:
+                                            extracted_items.append({'name': name, 'quantity': qty, 'price': price})
+                                    except:
+                                        pass
+                        
+                        if not extracted_items:
+                            # Fallback to mock data
+                            st.warning("Could not parse items from text. Using sample data.")
+                            extracted_items = [
+                                {'name': 'Rice 1kg', 'quantity': 2, 'price': 50},
+                                {'name': 'Sugar 1kg', 'quantity': 1, 'price': 48},
+                                {'name': 'Tea Powder', 'quantity': 1, 'price': 100}
+                            ]
+                    except ImportError:
+                        # pytesseract not installed, use mock data
+                        st.info("📝 Using AI simulation (install pytesseract for real OCR)")
+                        import time
+                        time.sleep(1)
+                        extracted_items = [
+                            {'name': 'Rice 1kg', 'quantity': 2, 'price': 50},
+                            {'name': 'Sugar 1kg', 'quantity': 1, 'price': 48},
+                            {'name': 'Tea Powder', 'quantity': 1, 'price': 100}
+                        ]
+                    
+                    st.success("✅ Bill processed successfully!")
+                    
+                    st.subheader("Extracted Items")
+                    df = pd.DataFrame(extracted_items)
+                    st.dataframe(df, use_container_width=True)
+                    
+                    total = sum(item['quantity'] * item['price'] for item in extracted_items)
+                    st.metric("Total Amount", f"₹{total}")
+                    
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if st.button("➕ Add to Inventory", use_container_width=True):
+                            data = st.session_state.shop_data
+                            added = 0
+                            updated = 0
+                            for item in extracted_items:
+                                # Check if item exists
+                                existing = next((i for i in data['inventory'] if i['name'].lower() == item['name'].lower()), None)
+                                if existing:
+                                    existing['quantity'] += item['quantity']
+                                    updated += 1
+                                else:
+                                    new_item = {
+                                        'itemId': f'ITEM{len(data["inventory"])+1:03d}',
+                                        'name': item['name'],
+                                        'category': 'groceries',
+                                        'quantity': item['quantity'],
+                                        'costPrice': item['price'] * 0.8,
+                                        'sellingPrice': item['price'],
+                                        'salesVelocity': 2.0
+                                    }
+                                    data['inventory'].append(new_item)
+                                    added += 1
+                            st.success(f"✅ Added {added} new items, updated {updated} existing items")
+                            st.rerun()
+                    
+                    with col2:
+                        if st.button("💰 Record as Sale", use_container_width=True):
+                            data = st.session_state.shop_data
+                            sale = {
+                                'saleId': f'SALE{len(data["salesHistory"])+1:04d}',
+                                'customerId': None,
+                                'customerName': 'Walk-in',
+                                'totalAmount': total,
+                                'paymentMethod': 'CASH',
+                                'timestamp': datetime.now().isoformat()
+                            }
+                            data['salesHistory'].append(sale)
+                            st.success("✅ Sale recorded")
+                            st.rerun()
     else:
         st.info("📸 Upload a bill image to get started")
         
         # Show example
-        st.write("**Example:** Upload a photo of a grocery bill, and AI will extract:")
-        st.write("- Item names")
-        st.write("- Quantities")
-        st.write("- Prices")
-        st.write("- Total amount")
+        st.write("**How it works:**")
+        st.write("1. Upload a photo of a grocery bill")
+        st.write("2. AI extracts item names, quantities, and prices")
+        st.write("3. Add items to inventory or record as sale")
+        st.write("")
+        st.write("**Supported formats:** PNG, JPG, JPEG")
+        st.write("**Tip:** Clear, well-lit photos work best!")
 
 # Main app logic
 if not st.session_state.logged_in:

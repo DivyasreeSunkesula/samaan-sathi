@@ -38,18 +38,21 @@ function showMainApp() {
 function showAuthTab(tab) {
     const loginForm = document.getElementById('loginForm');
     const registerForm = document.getElementById('registerForm');
-    const tabs = document.querySelectorAll('.tab-btn');
+    const loginTab = document.getElementById('loginTab');
+    const registerTab = document.getElementById('registerTab');
     
-    tabs.forEach(t => t.classList.remove('active'));
+    // Remove active class from all tabs
+    loginTab.classList.remove('active');
+    registerTab.classList.remove('active');
     
     if (tab === 'login') {
         loginForm.style.display = 'flex';
         registerForm.style.display = 'none';
-        tabs[0].classList.add('active');
+        loginTab.classList.add('active');
     } else {
         loginForm.style.display = 'none';
         registerForm.style.display = 'flex';
-        tabs[1].classList.add('active');
+        registerTab.classList.add('active');
     }
 }
 

@@ -7,6 +7,8 @@ import json
 import random
 from datetime import datetime, timedelta
 import pandas as pd
+from PIL import Image
+import io
 
 # Page config
 st.set_page_config(
@@ -54,6 +56,9 @@ st.markdown("""
         border-radius: 0.5rem;
         margin: 0.5rem 0;
     }
+    .stAlert {
+        margin: 0.5rem 0;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -66,6 +71,8 @@ if 'ai_results' not in st.session_state:
     st.session_state.ai_results = None
 if 'current_user' not in st.session_state:
     st.session_state.current_user = None
+if 'manual_mode' not in st.session_state:
+    st.session_state.manual_mode = False
 
 # Generate mock data function
 def generate_mock_data():
@@ -330,10 +337,29 @@ def show_main_app():
         st.write(f"**{st.session_state.current_user['shopName']}**")
         st.divider()
         
-        if st.button("📦 Load Demo Data", use_container_width=True):
-            st.session_state.shop_data = generate_mock_data()
-            st.success("✅ Demo data loaded!")
-            st.rerun()
+        # Data mode selection
+        data_mode = st.radio("Data Mode", ["📦 Demo Data", "✏️ Manual Entry"], horizontal=True)
+        
+        if data_mode == "📦 Demo Data":
+            if st.button("Load Demo Data", use_container_width=True):
+                st.session_state.shop_data = generate_mock_data()
+                st.session_state.manual_mode = False
+                st.success("✅ Demo data loaded!")
+                st.rerun()
+        else:
+            if st.button("Initialize Manual Entry", use_container_width=True):
+                st.session_state.shop_data = {
+                    'shopId': 'SHOP001',
+                    'shopName': st.session_state.current_user['shopName'],
+                    'cashAvailable': 10000,
+                    'inventory': [],
+                    'customers': [],
+                    'salesHistory': [],
+                    'udhaarRecords': []
+                }
+                st.session_state.manual_mode = True
+                st.success("✅ Manual mode activated!")
+                st.rerun()
         
         if st.button("🤖 Run AI Analysis", use_container_width=True, type="primary"):
             if st.session_state.shop_data:
@@ -342,13 +368,13 @@ def show_main_app():
                 st.success("✅ AI analysis complete!")
                 st.rerun()
             else:
-                st.error("Please load demo data first")
+                st.error("Please load data first")
         
         st.divider()
         
         page = st.radio(
             "Navigation",
-            ["📊 Dashboard", "📦 Inventory", "💰 Sales", "📝 Udhaar", "📈 Forecast", "💵 Pricing"],
+            ["📊 Dashboard", "📦 Inventory", "💰 Sales", "📝 Udhaar", "📈 Forecast", "💵 Pricing", "📸 OCR Scanner"],
             label_visibility="collapsed"
         )
         
@@ -358,6 +384,7 @@ def show_main_app():
             st.session_state.logged_in = False
             st.session_state.shop_data = None
             st.session_state.ai_results = None
+            st.session_state.manual_mode = False
             st.rerun()
     
     # Main content
@@ -373,6 +400,8 @@ def show_main_app():
         show_forecast()
     elif page == "💵 Pricing":
         show_pricing()
+    elif page == "📸 OCR Scanner":
+        show_ocr_scanner()
 
 def show_dashboard():
     st.title("📊 AI Dashboard")
@@ -413,15 +442,23 @@ def show_dashboard():
             st.subheader("⚠️ Critical Alerts")
             for alert in results['alerts']:
                 if alert['severity'] == 'CRITICAL':
-                    st.markdown(f'<div class="alert-critical">{alert["message"]}</div>', unsafe_allow_html=True)
+                    st.error(f"🚨 {alert['message']}")
+                elif alert['severity'] == 'HIGH':
+                    st.warning(f"⚠️ {alert['message']}")
                 else:
-                    st.markdown(f'<div class="alert-high">{alert["message"]}</div>', unsafe_allow_html=True)
+                    st.info(f"ℹ️ {alert['message']}")
+        else:
+            st.info("No critical alerts at this time")
+        
+        st.divider()
         
         # Insights
         if results['insights']:
             st.subheader("🎯 AI Insights")
             for insight in results['insights']:
-                st.markdown(f'<div class="insight-card"><strong>{insight["type"]}:</strong> {insight["message"]}</div>', unsafe_allow_html=True)
+                st.success(f"**{insight['type']}:** {insight['message']}")
+        else:
+            st.info("No insights available")
     else:
         st.info("👈 Click 'Run AI Analysis' to generate insights")
 
@@ -429,10 +466,40 @@ def show_inventory():
     st.title("📦 Inventory Management")
     
     if not st.session_state.shop_data:
-        st.info("👈 Load demo data first")
+        st.info("👈 Load data first")
         return
     
     data = st.session_state.shop_data
+    
+    # Manual entry option
+    if st.session_state.manual_mode:
+        with st.expander("➕ Add New Item", expanded=False):
+            col1, col2 = st.columns(2)
+            with col1:
+                item_name = st.text_input("Item Name")
+                category = st.selectbox("Category", ["groceries", "beverages", "snacks", "personal-care", "household"])
+                quantity = st.number_input("Quantity", min_value=0, value=10)
+            with col2:
+                cost_price = st.number_input("Cost Price (₹)", min_value=0.0, value=10.0)
+                selling_price = st.number_input("Selling Price (₹)", min_value=0.0, value=15.0)
+                sales_velocity = st.number_input("Sales Velocity (units/day)", min_value=0.0, value=2.0)
+            
+            if st.button("Add Item", type="primary"):
+                if item_name:
+                    new_item = {
+                        'itemId': f'ITEM{len(data["inventory"])+1:03d}',
+                        'name': item_name,
+                        'category': category,
+                        'quantity': quantity,
+                        'costPrice': cost_price,
+                        'sellingPrice': selling_price,
+                        'salesVelocity': sales_velocity
+                    }
+                    data['inventory'].append(new_item)
+                    st.success(f"✅ Added {item_name}")
+                    st.rerun()
+                else:
+                    st.error("Please enter item name")
     
     # Show reorder plan if AI results available
     if st.session_state.ai_results and st.button("🤖 Show AI Reorder Plan"):
@@ -449,9 +516,12 @@ def show_inventory():
         st.divider()
     
     # Inventory table
-    df = pd.DataFrame(data['inventory'])
-    df['margin'] = ((df['sellingPrice'] - df['costPrice']) / df['sellingPrice'] * 100).round(1)
-    st.dataframe(df[['name', 'category', 'quantity', 'costPrice', 'sellingPrice', 'margin']], use_container_width=True)
+    if data['inventory']:
+        df = pd.DataFrame(data['inventory'])
+        df['margin'] = ((df['sellingPrice'] - df['costPrice']) / df['sellingPrice'] * 100).round(1)
+        st.dataframe(df[['name', 'category', 'quantity', 'costPrice', 'sellingPrice', 'margin']], use_container_width=True)
+    else:
+        st.info("No inventory items. Add items above.")
 
 def show_sales():
     st.title("💰 Sales History")
@@ -510,7 +580,7 @@ def show_pricing():
     st.title("💵 Pricing Intelligence")
     
     if not st.session_state.shop_data:
-        st.info("👈 Load demo data first")
+        st.info("👈 Load data first")
         return
     
     if not st.session_state.ai_results:
@@ -518,8 +588,98 @@ def show_pricing():
         return
     
     recommendations = list(st.session_state.ai_results['pricingRecommendations'].values())
-    df = pd.DataFrame(recommendations)
-    st.dataframe(df, use_container_width=True)
+    if recommendations:
+        df = pd.DataFrame(recommendations)
+        st.dataframe(df, use_container_width=True)
+    else:
+        st.info("No pricing recommendations available")
+
+def show_ocr_scanner():
+    st.title("📸 OCR Bill Scanner")
+    
+    if not st.session_state.shop_data:
+        st.info("👈 Load data first")
+        return
+    
+    st.write("Upload a bill image to extract items automatically")
+    
+    uploaded_file = st.file_uploader("Choose a bill image", type=['png', 'jpg', 'jpeg'])
+    
+    if uploaded_file is not None:
+        # Display image
+        image = Image.open(uploaded_file)
+        st.image(image, caption='Uploaded Bill', use_column_width=True)
+        
+        if st.button("🤖 Process Bill with AI OCR", type="primary"):
+            with st.spinner("Processing image..."):
+                # Simulate OCR processing
+                import time
+                time.sleep(2)
+                
+                # Mock OCR results
+                extracted_items = [
+                    {'name': 'Rice 1kg', 'quantity': 2, 'price': 50},
+                    {'name': 'Sugar 1kg', 'quantity': 1, 'price': 48},
+                    {'name': 'Tea Powder', 'quantity': 1, 'price': 100}
+                ]
+                
+                st.success("✅ Bill processed successfully!")
+                
+                st.subheader("Extracted Items")
+                df = pd.DataFrame(extracted_items)
+                st.dataframe(df, use_container_width=True)
+                
+                total = sum(item['quantity'] * item['price'] for item in extracted_items)
+                st.metric("Total Amount", f"₹{total}")
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    if st.button("➕ Add to Inventory", use_container_width=True):
+                        data = st.session_state.shop_data
+                        added = 0
+                        for item in extracted_items:
+                            # Check if item exists
+                            existing = next((i for i in data['inventory'] if i['name'] == item['name']), None)
+                            if existing:
+                                existing['quantity'] += item['quantity']
+                            else:
+                                new_item = {
+                                    'itemId': f'ITEM{len(data["inventory"])+1:03d}',
+                                    'name': item['name'],
+                                    'category': 'groceries',
+                                    'quantity': item['quantity'],
+                                    'costPrice': item['price'] * 0.8,
+                                    'sellingPrice': item['price'],
+                                    'salesVelocity': 2.0
+                                }
+                                data['inventory'].append(new_item)
+                                added += 1
+                        st.success(f"✅ Added {added} new items to inventory")
+                        st.rerun()
+                
+                with col2:
+                    if st.button("💰 Record as Sale", use_container_width=True):
+                        data = st.session_state.shop_data
+                        sale = {
+                            'saleId': f'SALE{len(data["salesHistory"])+1:04d}',
+                            'customerId': None,
+                            'customerName': 'Walk-in',
+                            'totalAmount': total,
+                            'paymentMethod': 'CASH',
+                            'timestamp': datetime.now().isoformat()
+                        }
+                        data['salesHistory'].append(sale)
+                        st.success("✅ Sale recorded")
+                        st.rerun()
+    else:
+        st.info("📸 Upload a bill image to get started")
+        
+        # Show example
+        st.write("**Example:** Upload a photo of a grocery bill, and AI will extract:")
+        st.write("- Item names")
+        st.write("- Quantities")
+        st.write("- Prices")
+        st.write("- Total amount")
 
 # Main app logic
 if not st.session_state.logged_in:

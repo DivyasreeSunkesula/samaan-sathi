@@ -1,559 +1,419 @@
 """
-Consolidated AI Engine - All AI/ML logic in one place
-Handles: Forecasting, Risk Scoring, Pricing, Recommendations, Decisions
+Unified AI Engine - Orchestrates all AI components
+Main Lambda function for AI operations
 """
-
 import json
-import os
-import boto3
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, Any, List
-import random
 
-# AWS clients
-dynamodb = boto3.resource('dynamodb')
-bedrock = boto3.client('bedrock-runtime', region_name='ap-south-1')
+# Import all AI engines
+from forecast_engine import ForecastEngine
+from credit_risk_scorer import CreditRiskScorer
+from optimization_engine import OptimizationEngine
+from cash_flow_simulator import CashFlowSimulator
+from margin_optimizer import MarginOptimizer
+from bedrock_explainer import BedrockExplainer
 
-def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+
+class AIEngine:
     """
-    Single entry point for ALL AI operations
-    Routes to appropriate AI function based on operation type
+    Unified AI Engine orchestrating all AI capabilities
     """
-    try:
-        operation = event.get('operation') or extract_operation_from_path(event)
-        shop_id = get_shop_id(event)
-        body = json.loads(event.get('body', '{}')) if isinstance(event.get('body'), str) else event.get('body', {})
+    
+    def __init__(self):
+        self.forecast_engine = ForecastEngine()
+        self.credit_scorer = CreditRiskScorer()
+        self.optimizer = OptimizationEngine()
+        self.cash_flow_simulator = CashFlowSimulator()
+        self.margin_optimizer = MarginOptimizer()
+        self.explainer = BedrockExplainer()
+    
+    def run_daily_batch(self, shop_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Run daily batch AI processing for a shop
+        This is the main AI workflow
         
-        print(f"AI Engine: operation={operation}, shop_id={shop_id}")
+        Args:
+            shop_data: Complete shop data (inventory, sales, udhaar, etc.)
         
-        # Route to appropriate AI function
-        if operation == 'forecast':
-            return generate_forecast(shop_id, body)
-        elif operation == 'risk':
-            return calculate_risk(shop_id, body)
-        elif operation == 'pricing':
-            return optimize_pricing(shop_id, body)
-        elif operation == 'recommendations':
-            return get_recommendations(shop_id, body)
-        elif operation == 'decision':
-            return make_decision(shop_id, body)
-        elif operation == 'clustering':
-            return cluster_customers(shop_id, body)
-        else:
-            return response(400, {'error': f'Unknown operation: {operation}'})
-            
-    except Exception as e:
-        print(f"AI Engine Error: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return response(500, {'error': str(e)})
-
-
-def extract_operation_from_path(event: Dict[str, Any]) -> str:
-    """Extract operation from API path"""
-    path = event.get('path', '')
-    if '/forecast' in path:
-        return 'forecast'
-    elif '/risk' in path or '/clustering' in path:
-        return 'risk'
-    elif '/pricing' in path:
-        return 'pricing'
-    elif '/recommendations' in path:
-        return 'recommendations'
-    elif '/decision' in path:
-        return 'decision'
-    return 'unknown'
-
-
-def get_shop_id(event: Dict[str, Any]) -> str:
-    """Extract shop ID from JWT token"""
-    try:
-        request_context = event.get('requestContext', {})
-        authorizer = request_context.get('authorizer', {})
-        claims = authorizer.get('claims', {})
+        Returns:
+            Complete AI insights and recommendations
+        """
+        shop_id = shop_data.get('shopId', '')
+        inventory_items = shop_data.get('inventory', [])
+        sales_history = shop_data.get('salesHistory', [])
+        udhaar_records = shop_data.get('udhaarRecords', [])
+        cash_available = shop_data.get('cashAvailable', 10000)
         
-        if claims:
-            shop_id = claims.get('custom:shopId')
-            if shop_id:
-                return shop_id
-            username = claims.get('cognito:username') or claims.get('username')
-            if username:
-                return f"shop-{username}"
-        
-        return 'default-shop'
-    except:
-        return 'default-shop'
-
-
-# ============================================================================
-# FORECAST ENGINE - Demand forecasting with ML
-# ============================================================================
-
-def generate_forecast(shop_id: str, body: Dict[str, Any]) -> Dict[str, Any]:
-    """Generate demand forecasts using ML model"""
-    try:
-        item_ids = body.get('itemIds', [])
-        days = min(int(body.get('days', 7)), 7)  # Max 7 days
-        
-        print(f"Generating forecast for {len(item_ids)} items, {days} days")
-        
-        forecasts = []
-        for item_id in item_ids:
-            # Get historical sales
-            historical = get_historical_sales(shop_id, item_id, days=30)
-            
-            # Generate forecast
-            if len(historical) >= 7:
-                forecast_data = forecast_with_ml(historical, days)
-            else:
-                forecast_data = forecast_simple(historical, days)
-            
-            # Calculate confidence
-            confidence = calculate_confidence(historical)
-            
-            # Generate recommendation
-            recommendation = generate_recommendation(forecast_data, historical)
-            
-            forecasts.append({
-                'itemId': item_id,
-                'forecast': forecast_data,
-                'confidence': confidence,
-                'recommendation': recommendation
-            })
-        
-        return response(200, {
+        results = {
             'shopId': shop_id,
-            'forecasts': forecasts,
-            'generatedAt': datetime.utcnow().isoformat(),
-            'requestedDays': days
-        })
+            'processedAt': datetime.now().isoformat(),
+            'forecasts': {},
+            'creditScores': {},
+            'reorderPlan': {},
+            'cashFlowSimulation': {},
+            'pricingRecommendations': {},
+            'insights': [],
+            'alerts': []
+        }
         
-    except Exception as e:
-        print(f"Forecast error: {str(e)}")
-        return response(500, {'error': str(e)})
-
-
-def get_historical_sales(shop_id: str, item_id: str, days: int = 30) -> List[Dict]:
-    """Get historical sales data"""
-    # Mock data for now - in production, query from DynamoDB
-    data = []
-    base_quantity = random.randint(5, 20)
-    
-    for i in range(days):
-        date = (datetime.utcnow() - timedelta(days=days-i)).date()
-        quantity = max(0, int(base_quantity + random.randint(-3, 3)))
-        data.append({'date': date.isoformat(), 'quantity': quantity})
-    
-    return data
-
-
-def forecast_with_ml(historical: List[Dict], days: int) -> List[Dict]:
-    """ML-based forecast using exponential smoothing"""
-    quantities = [d['quantity'] for d in historical]
-    alpha = 0.3
-    forecast = []
-    last_value = quantities[-1]
-    
-    for i in range(days):
-        date = (datetime.utcnow() + timedelta(days=i+1)).date()
-        predicted = last_value
+        # 1. Generate demand forecasts for all items
+        print("Running demand forecasts...")
+        forecasts = {}
+        for item in inventory_items:
+            try:
+                forecast = self.forecast_engine.forecast_demand(
+                    item, 
+                    sales_history, 
+                    days=7
+                )
+                forecasts[item['itemId']] = forecast
+                
+                # Check for critical alerts
+                if forecast['currentStock'] < forecast['totalForecast'] * 0.3:
+                    results['alerts'].append({
+                        'type': 'STOCKOUT_RISK',
+                        'severity': 'HIGH',
+                        'message': f"⚠️ {item['name']} critically low. Need {forecast['totalForecast'] - forecast['currentStock']} units.",
+                        'itemId': item['itemId']
+                    })
+            except Exception as e:
+                print(f"Forecast error for {item.get('name')}: {e}")
         
-        forecast.append({
-            'date': date.isoformat(),
-            'predictedQuantity': int(predicted),
-            'lowerBound': int(predicted * 0.8),
-            'upperBound': int(predicted * 1.2)
-        })
-    
-    return forecast
-
-
-def forecast_simple(historical: List[Dict], days: int) -> List[Dict]:
-    """Simple moving average forecast"""
-    if not historical:
-        return []
-    
-    quantities = [d['quantity'] for d in historical]
-    avg = sum(quantities) / len(quantities)
-    
-    forecast = []
-    for i in range(days):
-        date = (datetime.utcnow() + timedelta(days=i+1)).date()
-        predicted = max(1, int(avg * random.uniform(0.85, 1.15)))
+        results['forecasts'] = forecasts
         
-        forecast.append({
-            'date': date.isoformat(),
-            'predictedQuantity': predicted,
-            'lowerBound': max(0, int(predicted * 0.7)),
-            'upperBound': int(predicted * 1.3)
-        })
-    
-    return forecast
-
-
-def calculate_confidence(historical: List[Dict]) -> float:
-    """Calculate forecast confidence based on data quality"""
-    if len(historical) < 7:
-        return 0.5
-    elif len(historical) < 14:
-        return 0.7
-    else:
-        quantities = [d['quantity'] for d in historical]
-        mean = sum(quantities) / len(quantities)
-        if mean == 0:
-            return 0.5
-        variance = sum((x - mean) ** 2 for x in quantities) / len(quantities)
-        std_dev = variance ** 0.5
-        cv = std_dev / mean
-        confidence = max(0.5, min(0.95, 1 - cv/2))
-        return round(confidence, 2)
-
-
-def generate_recommendation(forecast: List[Dict], historical: List[Dict]) -> str:
-    """Generate actionable recommendation"""
-    if not forecast:
-        return "Insufficient data for recommendation"
-    
-    total_predicted = sum(f['predictedQuantity'] for f in forecast)
-    avg_daily = total_predicted / len(forecast)
-    
-    if avg_daily < 5:
-        return f"Low demand expected. Stock {int(total_predicted * 1.2)} units for next {len(forecast)} days."
-    elif avg_daily > 20:
-        return f"High demand expected. Stock {int(total_predicted * 1.3)} units to avoid stock-outs."
-    else:
-        return f"Moderate demand. Stock {int(total_predicted * 1.1)} units for next {len(forecast)} days."
-
-
-# ============================================================================
-# RISK ENGINE - Credit risk assessment and customer clustering
-# ============================================================================
-
-def calculate_risk(shop_id: str, body: Dict[str, Any]) -> Dict[str, Any]:
-    """Calculate credit risk score for customer"""
-    try:
-        customer_id = body.get('customerId')
+        # 2. Score all customers for credit risk
+        print("Scoring customer credit risk...")
+        customers = self._extract_customers(udhaar_records)
+        credit_scores = {}
+        customers_data = []
         
-        # Get customer data
-        customer_data = get_customer_data(shop_id, customer_id)
+        for customer in customers:
+            try:
+                customer_udhaar = [u for u in udhaar_records if u.get('customerId') == customer['customerId']]
+                customer_sales = [s for s in sales_history if s.get('customerId') == customer['customerId']]
+                
+                score = self.credit_scorer.score_customer(
+                    customer,
+                    customer_udhaar,
+                    customer_sales
+                )
+                credit_scores[customer['customerId']] = score
+                customers_data.append(score)
+                
+                # Check for high-risk alerts
+                if score['riskCategory'] in ['HIGH_RISK', 'CHRONIC_DELAYER']:
+                    if score['currentOutstanding'] > 0:
+                        results['alerts'].append({
+                            'type': 'HIGH_RISK_CUSTOMER',
+                            'severity': 'MEDIUM',
+                            'message': f"⚠️ {customer['customerName']} is {score['riskCategory']}. Outstanding: ₹{score['currentOutstanding']:.0f}",
+                            'customerId': customer['customerId']
+                        })
+            except Exception as e:
+                print(f"Credit scoring error for {customer.get('customerName')}: {e}")
         
-        # Calculate risk score
-        risk_score = compute_risk_score(customer_data)
+        results['creditScores'] = credit_scores
         
-        # Get risk category
-        risk_category = get_risk_category(risk_score)
+        # Portfolio analysis
+        if customers_data:
+            try:
+                portfolio = self.credit_scorer.cluster_customers(customers_data)
+                results['portfolioAnalysis'] = portfolio
+            except Exception as e:
+                print(f"Portfolio analysis error: {e}")
         
-        # Generate explanation
-        explanation = explain_risk(risk_score, customer_data)
-        
-        return response(200, {
-            'customerId': customer_id,
-            'riskScore': risk_score,
-            'riskCategory': risk_category,
-            'explanation': explanation,
-            'recommendation': get_credit_recommendation(risk_score)
-        })
-        
-    except Exception as e:
-        print(f"Risk calculation error: {str(e)}")
-        return response(500, {'error': str(e)})
-
-
-def get_customer_data(shop_id: str, customer_id: str) -> Dict:
-    """Get customer transaction history"""
-    # Mock data - in production, query DynamoDB
-    return {
-        'totalUdhaar': random.randint(1000, 10000),
-        'overdueAmount': random.randint(0, 5000),
-        'paymentHistory': random.randint(5, 20),
-        'avgPaymentDelay': random.randint(0, 30)
-    }
-
-
-def compute_risk_score(customer_data: Dict) -> float:
-    """Compute risk score (0-100, lower is better)"""
-    score = 50  # Base score
-    
-    # Adjust based on overdue amount
-    if customer_data['overdueAmount'] > 0:
-        score += min(30, customer_data['overdueAmount'] / 100)
-    
-    # Adjust based on payment delay
-    score += min(20, customer_data['avgPaymentDelay'])
-    
-    # Adjust based on payment history (more history = lower risk)
-    score -= min(20, customer_data['paymentHistory'])
-    
-    return max(0, min(100, score))
-
-
-def get_risk_category(score: float) -> str:
-    """Get risk category from score"""
-    if score < 30:
-        return 'LOW'
-    elif score < 60:
-        return 'MEDIUM'
-    else:
-        return 'HIGH'
-
-
-def explain_risk(score: float, data: Dict) -> str:
-    """Generate human-readable risk explanation"""
-    category = get_risk_category(score)
-    
-    if category == 'LOW':
-        return f"Low risk customer with good payment history ({data['paymentHistory']} transactions)."
-    elif category == 'MEDIUM':
-        return f"Medium risk. Overdue amount: ₹{data['overdueAmount']}, Avg delay: {data['avgPaymentDelay']} days."
-    else:
-        return f"High risk. Significant overdue amount (₹{data['overdueAmount']}) and payment delays."
-
-
-def get_credit_recommendation(score: float) -> str:
-    """Get credit limit recommendation"""
-    if score < 30:
-        return "Can extend credit up to ₹10,000"
-    elif score < 60:
-        return "Limit credit to ₹5,000"
-    else:
-        return "Avoid extending credit. Request cash payment."
-
-
-def cluster_customers(shop_id: str, body: Dict[str, Any]) -> Dict[str, Any]:
-    """Cluster customers by behavior"""
-    # Simplified clustering - in production, use K-means
-    return response(200, {
-        'clusters': [
-            {'name': 'High Value', 'count': 15, 'avgSpend': 5000},
-            {'name': 'Regular', 'count': 45, 'avgSpend': 2000},
-            {'name': 'Occasional', 'count': 30, 'avgSpend': 500}
-        ]
-    })
-
-
-# ============================================================================
-# PRICING ENGINE - Dynamic pricing optimization
-# ============================================================================
-
-def optimize_pricing(shop_id: str, body: Dict[str, Any]) -> Dict[str, Any]:
-    """Generate pricing recommendations"""
-    try:
-        # Get inventory items
-        items = get_inventory_items(shop_id)
-        
-        recommendations = []
-        for item in items:
-            # Calculate optimal price
-            optimal_price = calculate_optimal_price(item)
-            
-            # Calculate potential impact
-            impact = calculate_price_impact(item, optimal_price)
-            
-            recommendations.append({
-                'itemId': item['itemId'],
-                'itemName': item['name'],
-                'currentPrice': item['sellingPrice'],
-                'recommendedPrice': optimal_price,
-                'priceChange': optimal_price - item['sellingPrice'],
-                'expectedImpact': impact
-            })
-        
-        return response(200, {
-            'shopId': shop_id,
-            'recommendations': recommendations[:10]  # Top 10
-        })
-        
-    except Exception as e:
-        print(f"Pricing error: {str(e)}")
-        return response(500, {'error': str(e)})
-
-
-def get_inventory_items(shop_id: str) -> List[Dict]:
-    """Get inventory items"""
-    # Mock data
-    return [
-        {'itemId': 'item-1', 'name': 'Rice 1kg', 'costPrice': 40, 'sellingPrice': 50, 'demand': 20},
-        {'itemId': 'item-2', 'name': 'Wheat Flour', 'costPrice': 35, 'sellingPrice': 45, 'demand': 15}
-    ]
-
-
-def calculate_optimal_price(item: Dict) -> float:
-    """Calculate optimal price based on cost and demand"""
-    cost = item['costPrice']
-    current_price = item['sellingPrice']
-    demand = item.get('demand', 10)
-    
-    # Simple markup optimization
-    if demand > 20:
-        # High demand - can increase price
-        optimal = cost * 1.35
-    elif demand < 5:
-        # Low demand - reduce price
-        optimal = cost * 1.15
-    else:
-        # Normal demand
-        optimal = cost * 1.25
-    
-    return round(optimal, 2)
-
-
-def calculate_price_impact(item: Dict, new_price: float) -> str:
-    """Calculate expected impact of price change"""
-    change = new_price - item['sellingPrice']
-    
-    if change > 0:
-        return f"+₹{change:.2f} may reduce sales by 5-10%"
-    elif change < 0:
-        return f"₹{abs(change):.2f} discount may increase sales by 10-15%"
-    else:
-        return "No change recommended"
-
-
-# ============================================================================
-# RECOMMENDATION ENGINE - Product and action recommendations
-# ============================================================================
-
-def get_recommendations(shop_id: str, body: Dict[str, Any]) -> Dict[str, Any]:
-    """Generate AI recommendations"""
-    try:
-        recommendations = []
-        
-        # Stock recommendations
-        recommendations.append({
-            'type': 'RESTOCK',
-            'priority': 'HIGH',
-            'message': 'Rice 1kg is running low. Restock 50 units.',
-            'action': 'restock',
-            'itemId': 'item-1'
-        })
-        
-        # Pricing recommendations
-        recommendations.append({
-            'type': 'PRICING',
-            'priority': 'MEDIUM',
-            'message': 'Reduce price of slow-moving items by 10%',
-            'action': 'adjust_price'
-        })
-        
-        # Udhaar recommendations
-        recommendations.append({
-            'type': 'CREDIT',
-            'priority': 'HIGH',
-            'message': '3 customers have overdue payments. Send reminders.',
-            'action': 'send_reminder'
-        })
-        
-        return response(200, {
-            'shopId': shop_id,
-            'recommendations': recommendations
-        })
-        
-    except Exception as e:
-        print(f"Recommendations error: {str(e)}")
-        return response(500, {'error': str(e)})
-
-
-# ============================================================================
-# DECISION ENGINE - Orchestrates all AI + Bedrock explanations
-# ============================================================================
-
-def make_decision(shop_id: str, body: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Make AI-powered business decision
-    Orchestrates forecast, risk, pricing + Bedrock explanation
-    """
-    try:
-        decision_type = body.get('type', 'general')
-        
-        # Gather AI insights
-        forecast_data = generate_forecast(shop_id, {'itemIds': ['item-1'], 'days': 7})
-        risk_data = calculate_risk(shop_id, {'customerId': 'customer-1'})
-        pricing_data = optimize_pricing(shop_id, {})
-        
-        # Generate Bedrock explanation
-        explanation = explain_with_bedrock(forecast_data, risk_data, pricing_data, decision_type)
-        
-        return response(200, {
-            'shopId': shop_id,
-            'decision': {
-                'forecast': forecast_data,
-                'risk': risk_data,
-                'pricing': pricing_data,
-                'explanation': explanation
-            }
-        })
-        
-    except Exception as e:
-        print(f"Decision error: {str(e)}")
-        return response(500, {'error': str(e)})
-
-
-def explain_with_bedrock(forecast, risk, pricing, decision_type: str) -> str:
-    """Generate human-readable explanation using Bedrock with fallback"""
-    try:
-        # Try Sonnet first (better quality)
-        return call_bedrock_sonnet(forecast, risk, pricing, decision_type)
-    except Exception as e:
-        print(f"Bedrock Sonnet failed: {str(e)}")
+        # 3. Run cash flow simulation
+        print("Simulating cash flow...")
         try:
-            # Fallback to Haiku (faster, cheaper)
-            return call_bedrock_haiku(forecast, risk, pricing, decision_type)
-        except Exception as e2:
-            print(f"Bedrock Haiku failed: {str(e2)}")
-            # Final fallback: template-based
-            return generate_template_explanation(forecast, risk, pricing, decision_type)
-
-
-def call_bedrock_sonnet(forecast, risk, pricing, decision_type: str) -> str:
-    """Call Bedrock with Claude Sonnet"""
-    model_id = os.environ.get('BEDROCK_MODEL_SONNET', 'anthropic.claude-3-sonnet-20240229-v1:0')
+            udhaar_outstanding = sum(
+                u.get('amount', 0) - u.get('paidAmount', 0)
+                for u in udhaar_records
+                if u.get('status') != 'PAID'
+            )
+            
+            cash_flow = self.cash_flow_simulator.simulate_cash_flow(
+                cash_available,
+                udhaar_outstanding,
+                udhaar_records,
+                inventory_items,
+                forecasts,
+                days=14
+            )
+            results['cashFlowSimulation'] = cash_flow
+            
+            # Check for survival mode
+            if cash_flow['survivalMode']['activated']:
+                results['alerts'].append({
+                    'type': 'SURVIVAL_MODE',
+                    'severity': 'CRITICAL',
+                    'message': f"🚨 SURVIVAL MODE ACTIVE: {cash_flow['survivalMode']['severity']} risk",
+                    'triggers': cash_flow['survivalMode']['triggers']
+                })
+        except Exception as e:
+            print(f"Cash flow simulation error: {e}")
+        
+        # 4. Optimize reorder plan
+        print("Optimizing reorder plan...")
+        try:
+            reorder_plan = self.optimizer.optimize_reorder(
+                inventory_items,
+                forecasts,
+                cash_available,
+                udhaar_outstanding,
+                storage_capacity=1000,
+                supplier_lead_time=3
+            )
+            results['reorderPlan'] = reorder_plan
+            
+            # Generate insights
+            if reorder_plan['cashFlowHealth']['status'] in ['CRITICAL', 'WARNING']:
+                results['insights'].append({
+                    'type': 'CASH_FLOW',
+                    'priority': 'HIGH',
+                    'message': reorder_plan['cashFlowHealth']['description']
+                })
+        except Exception as e:
+            print(f"Reorder optimization error: {e}")
+        
+        # 5. Pricing recommendations (top 10 items by sales)
+        print("Generating pricing recommendations...")
+        pricing_recommendations = {}
+        top_items = sorted(
+            inventory_items,
+            key=lambda x: x.get('salesVelocity', 0),
+            reverse=True
+        )[:10]
+        
+        for item in top_items:
+            try:
+                item_sales = [s for s in sales_history if any(
+                    i.get('itemId') == item['itemId'] for i in s.get('items', [])
+                )]
+                
+                # Determine inventory status
+                forecast = forecasts.get(item['itemId'], {})
+                if item['quantity'] > forecast.get('totalForecast', 0) * 2:
+                    inventory_status = 'overstocked'
+                elif item['quantity'] < forecast.get('totalForecast', 0) * 0.5:
+                    inventory_status = 'understocked'
+                else:
+                    inventory_status = 'normal'
+                
+                pricing = self.margin_optimizer.optimize_pricing(
+                    item,
+                    item_sales,
+                    inventory_status=inventory_status
+                )
+                pricing_recommendations[item['itemId']] = pricing
+                
+                # Alert for significant price changes
+                if abs(pricing['priceChangePercent']) > 10:
+                    results['insights'].append({
+                        'type': 'PRICING',
+                        'priority': 'MEDIUM',
+                        'message': pricing['recommendation']
+                    })
+            except Exception as e:
+                print(f"Pricing optimization error for {item.get('name')}: {e}")
+        
+        results['pricingRecommendations'] = pricing_recommendations
+        
+        # 6. Generate bundle recommendations
+        print("Generating bundle recommendations...")
+        try:
+            bundles = self.margin_optimizer.recommend_bundles(
+                inventory_items,
+                sales_history,
+                max_bundles=5
+            )
+            results['bundleRecommendations'] = bundles
+        except Exception as e:
+            print(f"Bundle recommendation error: {e}")
+        
+        # 7. Generate AI explanations for top insights
+        print("Generating AI explanations...")
+        try:
+            # Explain top forecast
+            if forecasts:
+                top_forecast = max(forecasts.values(), key=lambda x: x.get('totalForecast', 0))
+                explanation = self.explainer.explain_forecast(top_forecast, language='en')
+                results['topForecastExplanation'] = explanation
+            
+            # Explain cash flow if critical
+            if results.get('cashFlowSimulation'):
+                if results['cashFlowSimulation']['analysis']['riskLevel'] in ['CRITICAL', 'HIGH']:
+                    explanation = self.explainer.explain_cash_flow(
+                        results['cashFlowSimulation'],
+                        language='en'
+                    )
+                    results['cashFlowExplanation'] = explanation
+            
+            # Explain reorder plan
+            if results.get('reorderPlan'):
+                explanation = self.explainer.explain_reorder(
+                    results['reorderPlan'],
+                    language='en'
+                )
+                results['reorderExplanation'] = explanation
+        except Exception as e:
+            print(f"Explanation generation error: {e}")
+        
+        # 8. Generate summary insights
+        results['summary'] = self._generate_summary(results)
+        
+        return results
     
-    prompt = f"""Based on this data, provide a brief business recommendation:
+    def _extract_customers(self, udhaar_records: List[Dict]) -> List[Dict]:
+        """Extract unique customers from udhaar records"""
+        customers = {}
+        for record in udhaar_records:
+            customer_id = record.get('customerId', '')
+            if customer_id and customer_id not in customers:
+                customers[customer_id] = {
+                    'customerId': customer_id,
+                    'customerName': record.get('customerName', 'Unknown'),
+                    'phone': record.get('phone', ''),
+                    'address': record.get('address', '')
+                }
+        return list(customers.values())
     
-Forecast: {json.dumps(forecast.get('body', {}))}
-Risk: {json.dumps(risk.get('body', {}))}
-Pricing: {json.dumps(pricing.get('body', {}))}
+    def _generate_summary(self, results: Dict) -> Dict[str, Any]:
+        """Generate executive summary"""
+        critical_alerts = len([a for a in results['alerts'] if a['severity'] == 'CRITICAL'])
+        high_alerts = len([a for a in results['alerts'] if a['severity'] == 'HIGH'])
+        
+        # Calculate key metrics
+        total_items = len(results['forecasts'])
+        items_needing_restock = len([
+            f for f in results['forecasts'].values()
+            if f['currentStock'] < f['totalForecast']
+        ])
+        
+        total_customers = len(results['creditScores'])
+        high_risk_customers = len([
+            c for c in results['creditScores'].values()
+            if c['riskCategory'] in ['HIGH_RISK', 'CHRONIC_DELAYER']
+        ])
+        
+        cash_flow_status = results.get('cashFlowSimulation', {}).get('analysis', {}).get('riskLevel', 'UNKNOWN')
+        
+        return {
+            'criticalAlerts': critical_alerts,
+            'highAlerts': high_alerts,
+            'totalAlerts': len(results['alerts']),
+            'itemsTracked': total_items,
+            'itemsNeedingRestock': items_needing_restock,
+            'customersTracked': total_customers,
+            'highRiskCustomers': high_risk_customers,
+            'cashFlowStatus': cash_flow_status,
+            'aiEnginesRun': 6,
+            'processingTime': 'Complete'
+        }
 
-Provide a 2-3 sentence recommendation for a kirana shop owner."""
+
+def lambda_handler(event, context):
+    """AWS Lambda handler"""
+    try:
+        body = json.loads(event.get('body', '{}'))
+        action = body.get('action', 'batch')
+        
+        engine = AIEngine()
+        
+        if action == 'batch':
+            # Daily batch processing
+            shop_data = body.get('shopData', {})
+            result = engine.run_daily_batch(shop_data)
+        
+        elif action == 'forecast':
+            # Single forecast
+            item = body.get('item', {})
+            sales_history = body.get('salesHistory', [])
+            days = body.get('days', 7)
+            result = engine.forecast_engine.forecast_demand(item, sales_history, days)
+        
+        elif action == 'credit_score':
+            # Single customer credit score
+            customer = body.get('customer', {})
+            udhaar_history = body.get('udhaarHistory', [])
+            sales_history = body.get('salesHistory', [])
+            result = engine.credit_scorer.score_customer(customer, udhaar_history, sales_history)
+        
+        elif action == 'optimize_reorder':
+            # Reorder optimization
+            inventory_items = body.get('inventoryItems', [])
+            forecasts = body.get('forecasts', {})
+            cash_available = body.get('cashAvailable', 10000)
+            udhaar_outstanding = body.get('udhaarOutstanding', 0)
+            result = engine.optimizer.optimize_reorder(
+                inventory_items, forecasts, cash_available, udhaar_outstanding, 1000
+            )
+        
+        elif action == 'simulate_cash_flow':
+            # Cash flow simulation
+            current_cash = body.get('currentCash', 10000)
+            udhaar_outstanding = body.get('udhaarOutstanding', 0)
+            udhaar_records = body.get('udhaarRecords', [])
+            inventory_items = body.get('inventoryItems', [])
+            forecasts = body.get('forecasts', {})
+            result = engine.cash_flow_simulator.simulate_cash_flow(
+                current_cash, udhaar_outstanding, udhaar_records, 
+                inventory_items, forecasts, days=14
+            )
+        
+        elif action == 'optimize_pricing':
+            # Pricing optimization
+            item = body.get('item', {})
+            sales_history = body.get('salesHistory', [])
+            inventory_status = body.get('inventoryStatus', 'normal')
+            result = engine.margin_optimizer.optimize_pricing(
+                item, sales_history, inventory_status=inventory_status
+            )
+        
+        elif action == 'explain':
+            # Generate explanation
+            explanation_type = body.get('type', 'forecast')
+            data = body.get('data', {})
+            language = body.get('language', 'en')
+            
+            if explanation_type == 'forecast':
+                result = engine.explainer.explain_forecast(data, language)
+            elif explanation_type == 'credit_risk':
+                result = engine.explainer.explain_credit_risk(data, language)
+            elif explanation_type == 'reorder':
+                result = engine.explainer.explain_reorder(data, language)
+            elif explanation_type == 'cash_flow':
+                result = engine.explainer.explain_cash_flow(data, language)
+            elif explanation_type == 'pricing':
+                result = engine.explainer.explain_pricing(data, language)
+            else:
+                return {
+                    'statusCode': 400,
+                    'body': json.dumps({'error': 'Invalid explanation type'})
+                }
+        
+        else:
+            return {
+                'statusCode': 400,
+                'body': json.dumps({'error': 'Invalid action'})
+            }
+        
+        return {
+            'statusCode': 200,
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            },
+            'body': json.dumps(result)
+        }
     
-    response = bedrock.invoke_model(
-        modelId=model_id,
-        body=json.dumps({
-            "anthropic_version": "bedrock-2023-05-31",
-            "max_tokens": 200,
-            "messages": [{"role": "user", "content": prompt}]
-        })
-    )
-    
-    result = json.loads(response['body'].read())
-    return result['content'][0]['text']
-
-
-def call_bedrock_haiku(forecast, risk, pricing, decision_type: str) -> str:
-    """Call Bedrock with Claude Haiku (fallback)"""
-    model_id = os.environ.get('BEDROCK_MODEL_HAIKU', 'anthropic.claude-3-haiku-20240307-v1:0')
-    # Similar implementation to Sonnet
-    return "Haiku explanation placeholder"
-
-
-def generate_template_explanation(forecast, risk, pricing, decision_type: str) -> str:
-    """Template-based explanation (final fallback)"""
-    return "Based on AI analysis: Focus on restocking high-demand items, monitor credit risk for overdue customers, and adjust pricing for slow-moving inventory."
-
-
-# ============================================================================
-# UTILITY FUNCTIONS
-# ============================================================================
-
-def response(status_code: int, body: Dict[str, Any]) -> Dict[str, Any]:
-    """Format API Gateway response"""
-    return {
-        'statusCode': status_code,
-        'headers': {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-            'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS'
-        },
-        'body': json.dumps(body) if isinstance(body, dict) else body
-    }
+    except Exception as e:
+        import traceback
+        return {
+            'statusCode': 500,
+            'headers': {'Content-Type': 'application/json'},
+            'body': json.dumps({
+                'error': str(e),
+                'traceback': traceback.format_exc()
+            })
+        }

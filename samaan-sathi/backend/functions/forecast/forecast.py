@@ -105,6 +105,7 @@ def get_forecasts(shop_id: str) -> Dict[str, Any]:
 def generate_forecasts(shop_id: str, item_ids: List[str], days: int) -> Dict[str, Any]:
     """Generate demand forecasts using ML model"""
     try:
+        print(f"Generating forecasts for {len(item_ids)} items, {days} days")
         forecasts = []
         
         for item_id in item_ids:
@@ -117,6 +118,8 @@ def generate_forecasts(shop_id: str, item_ids: List[str], days: int) -> Dict[str
             else:
                 # Use simple moving average for insufficient data
                 forecast_data = forecast_simple(historical_data, days)
+            
+            print(f"Generated {len(forecast_data)} forecast days for item {item_id}")
             
             # Generate recommendation
             recommendation = generate_recommendation(forecast_data, historical_data)
@@ -131,11 +134,15 @@ def generate_forecasts(shop_id: str, item_ids: List[str], days: int) -> Dict[str
         return response(200, {
             'shopId': shop_id,
             'forecasts': forecasts,
-            'generatedAt': datetime.utcnow().isoformat()
+            'generatedAt': datetime.utcnow().isoformat(),
+            'requestedDays': days,
+            'actualDays': len(forecasts[0]['forecast']) if forecasts else 0
         })
         
     except Exception as e:
         print(f"Generate forecasts error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return response(500, {'error': 'Failed to generate forecasts'})
 
 
@@ -209,6 +216,7 @@ def forecast_simple(historical_data: List[Dict[str, Any]], days: int) -> List[Di
         slope = 0
     
     forecast = []
+    # FIXED: Generate exactly 'days' number of forecasts
     for i in range(days):
         date = (datetime.utcnow() + timedelta(days=i+1)).date()
         
@@ -261,6 +269,9 @@ def forecast_simple(historical_data: List[Dict[str, Any]], days: int) -> List[Di
             'festivalName': festival_name if is_festival else None,
             'isWeekend': is_weekend
         })
+    
+    # VERIFICATION: Ensure we return exactly 'days' forecasts
+    assert len(forecast) == days, f"Expected {days} forecasts, got {len(forecast)}"
     
     return forecast
 

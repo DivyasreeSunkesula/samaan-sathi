@@ -1,6 +1,6 @@
 ﻿// API Configuration
 const CONFIG = {
-    API_URL: 'https://d2dzik9z94.execute-api.ap-south-1.amazonaws.com/prod',
+    API_URL: 'https://ozx9x2csyg.execute-api.ap-south-1.amazonaws.com/prod',
     
     FEATURES: {
         ENABLE_AUTO_REFRESH: true,
@@ -14,6 +14,8 @@ const CONFIG = {
         AUTH_REGISTER: '/auth/register',
         AUTH_LOGIN: '/auth/login',
         INVENTORY: '/inventory',
+        SALES: '/sales',
+        SALES_ANALYTICS: '/sales/analytics',
         UDHAAR: '/udhaar',
         UDHAAR_PAYMENT: '/udhaar/payment',
         FORECAST: '/forecast',
@@ -30,3 +32,7 @@ const CONFIG = {
         ANIMATION_DURATION: 300
     }
 };
+
+// Expose API_URL globally for backward compatibility
+const API_URL = CONFIG.API_URL;
+window.API_URL = API_URL;

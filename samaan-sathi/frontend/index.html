@@ -3,40 +3,440 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Samaan Sathi AI - Smart Retail Companion</title>
-    <link rel="stylesheet" href="styles.css">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛒</text></svg>">
+    <title>Samaan Sathi - AI-Powered Shop Management</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        /* Auth Screen */
+        .auth-screen {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .auth-container {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 90%;
+            max-width: 420px;
+        }
+
+        .auth-container h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+
+        .tagline {
+            text-align: center;
+            color: var(--text-light);
+            margin-bottom: 2rem;
+        }
+
+        .auth-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 0.75rem;
+            border: none;
+            background: var(--bg);
+            cursor: pointer;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .auth-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .auth-form input {
+            padding: 0.875rem;
+            border: 2px solid var(--border);
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .auth-form input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .btn-primary {
+            padding: 0.875rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .message {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            text-align: center;
+            font-size: 0.875rem;
+        }
+
+        .message.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .message.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        /* Main App */
+        .app-header {
+            background: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left h1 {
+            font-size: 1.5rem;
+        }
+
+        .shop-name {
+            color: var(--text-light);
+            font-size: 0.875rem;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .btn-secondary {
+            padding: 0.5rem 1rem;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+
+        .btn-ai {
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .btn-ai:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-logout {
+            padding: 0.5rem 1rem;
+            background: var(--danger);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .app-nav {
+            background: white;
+            padding: 0 2rem;
+            display: flex;
+            gap: 0.5rem;
+            border-bottom: 1px solid var(--border);
+            overflow-x: auto;
+        }
+
+        .nav-btn {
+            padding: 1rem 1.5rem;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-weight: 500;
+            color: var(--text-light);
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .nav-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .app-content {
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .content-section {
+            display: none;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .metric-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .metric-card h4 {
+            color: var(--text-light);
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 1.5rem;
+        }
+
+        .card h3 {
+            margin-bottom: 1rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-light);
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .alert.critical {
+            background: #fee2e2;
+            color: #991b1b;
+            border-left: 4px solid var(--danger);
+        }
+
+        .alert.high {
+            background: #fef3c7;
+            color: #92400e;
+            border-left: 4px solid var(--warning);
+        }
+
+        .alert.medium {
+            background: #dbeafe;
+            color: #1e40af;
+            border-left: 4px solid var(--primary);
+        }
+
+        .insight {
+            padding: 1rem;
+            background: var(--bg);
+            border-radius: 0.5rem;
+            margin-bottom: 0.75rem;
+            border-left: 4px solid var(--success);
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th {
+            text-align: left;
+            padding: 0.75rem;
+            background: var(--bg);
+            font-weight: 600;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge.warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge.danger {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-light);
+        }
+
+        .spinner {
+            border: 3px solid var(--border);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .section-actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .forecast-chart {
+            display: flex;
+            gap: 0.5rem;
+            overflow-x: auto;
+            padding: 1rem 0;
+        }
+
+        .forecast-day {
+            min-width: 80px;
+            text-align: center;
+            padding: 0.75rem;
+            background: var(--bg);
+            border-radius: 0.5rem;
+        }
+
+        .forecast-day .date {
+            font-size: 0.75rem;
+            color: var(--text-light);
+            margin-bottom: 0.5rem;
+        }
+
+        .forecast-day .quantity {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        @media (max-width: 768px) {
+            .app-header {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .header-right {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar">
-        <div class="nav-container">
-            <div class="nav-brand">
-                <span class="logo">🛒</span>
-                <span class="brand-name">Samaan Sathi AI</span>
-            </div>
-            <div class="nav-menu" id="navMenu">
-                <a href="#dashboard" class="nav-link active" data-page="dashboard">Dashboard</a>
-                <a href="#inventory" class="nav-link" data-page="inventory">Inventory</a>
-                <a href="#udhaar" class="nav-link" data-page="udhaar">Udhaar</a>
-                <a href="#forecast" class="nav-link" data-page="forecast">Forecast</a>
-                <a href="#pricing" class="nav-link" data-page="pricing">Pricing</a>
-                <a href="#ocr" class="nav-link" data-page="ocr">Bill Scanner</a>
-            </div>
-            <div class="nav-actions">
-                <span class="shop-name" id="shopName"></span>
-                <button class="btn-logout" onclick="logout()">Logout</button>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Login/Register Screen -->
+    <!-- Auth Screen -->
     <div id="authScreen" class="auth-screen">
         <div class="auth-container">
-            <div class="auth-header">
-                <h1>🛒 Samaan Sathi AI</h1>
-                <p>Your Smart Retail Companion</p>
-            </div>
+            <h1>🏪 Samaan Sathi</h1>
+            <p class="tagline">AI-Powered Shop Management</p>
             
             <div class="auth-tabs">
                 <button class="tab-btn active" onclick="showAuthTab('login')">Login</button>
@@ -44,338 +444,176 @@
             </div>
 
             <!-- Login Form -->
-            <div id="loginForm" class="auth-form">
-                <div class="form-group">
-                    <label for="loginUsername">Username</label>
-                    <input type="text" id="loginUsername" placeholder="Enter your username" required>
-                </div>
-                <div class="form-group">
-                    <label for="loginPassword">Password</label>
-                    <input type="password" id="loginPassword" placeholder="Enter your password" required>
-                </div>
-                <button class="btn-primary" onclick="login()">Login</button>
-                <a href="#" class="forgot-password-link" onclick="showForgotPassword(); return false;">Forgot Password?</a>
-                <div id="loginError" class="error-message"></div>
-            </div>
+            <form id="loginForm" class="auth-form" onsubmit="login(event)">
+                <input type="text" id="loginUsername" placeholder="Username" required>
+                <input type="password" id="loginPassword" placeholder="Password" required>
+                <button type="submit" class="btn-primary">Login</button>
+            </form>
 
             <!-- Register Form -->
-            <div id="registerForm" class="auth-form" style="display:none;">
-                <div class="form-group">
-                    <label for="regUsername">Username *</label>
-                    <input type="text" id="regUsername" placeholder="Choose a unique username" required>
-                </div>
-                <div class="form-group">
-                    <label for="regPassword">Password *</label>
-                    <input type="password" id="regPassword" placeholder="Min 8 characters" required>
-                </div>
-                <div class="form-group">
-                    <label for="regEmail">Email *</label>
-                    <input type="email" id="regEmail" placeholder="your@email.com" required>
-                </div>
-                <div class="form-group">
-                    <label for="regPhone">Phone Number *</label>
-                    <input type="tel" id="regPhone" placeholder="+91XXXXXXXXXX" required>
-                </div>
-                <div class="form-group">
-                    <label for="regFullName">Full Name *</label>
-                    <input type="text" id="regFullName" placeholder="Your full name" required>
-                </div>
-                <div class="form-group">
-                    <label for="regShopName">Shop Name</label>
-                    <input type="text" id="regShopName" placeholder="Your shop's name (optional)">
-                </div>
-                <button class="btn-primary" onclick="register()">Register</button>
-                <div id="registerError" class="error-message"></div>
-            </div>
+            <form id="registerForm" class="auth-form" style="display: none;" onsubmit="register(event)">
+                <input type="text" id="regShopName" placeholder="Shop Name" required>
+                <input type="text" id="regOwnerName" placeholder="Owner Name" required>
+                <input type="text" id="regUsername" placeholder="Username" required>
+                <input type="password" id="regPassword" placeholder="Password (min 8 chars)" required minlength="8">
+                <input type="tel" id="regPhone" placeholder="Phone Number" required>
+                <button type="submit" class="btn-primary">Register</button>
+            </form>
+
+            <div id="authMessage" class="message" style="display: none;"></div>
         </div>
     </div>
 
     <!-- Main App -->
-    <div id="mainApp" class="main-app" style="display:none;">
-        
-        <!-- Dashboard Page -->
-        <div id="dashboardPage" class="page active">
-            <div class="page-header">
-                <h2>Dashboard</h2>
-                <p>Overview of your shop performance</p>
+    <div id="mainApp" style="display: none;">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-left">
+                <h1>🏪 Samaan Sathi</h1>
+                <span id="shopName" class="shop-name"></span>
             </div>
+            <div class="header-right">
+                <button onclick="loadDemoData()" class="btn-secondary">📦 Load Demo Data</button>
+                <button onclick="runAIBatch()" class="btn-ai">🤖 Run AI Analysis</button>
+                <button onclick="logout()" class="btn-logout">Logout</button>
+            </div>
+        </header>
 
-            <!-- Stats Cards -->
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-icon">📦</div>
-                    <div class="stat-content">
-                        <h3 id="totalItems">0</h3>
-                        <p>Total Items</p>
+        <!-- Navigation -->
+        <nav class="app-nav">
+            <button class="nav-btn active" onclick="showSection('dashboard')">📊 Dashboard</button>
+            <button class="nav-btn" onclick="showSection('inventory')">📦 Inventory</button>
+            <button class="nav-btn" onclick="showSection('sales')">💰 Sales</button>
+            <button class="nav-btn" onclick="showSection('udhaar')">📝 Udhaar</button>
+            <button class="nav-btn" onclick="showSection('forecast')">📈 Forecast</button>
+            <button class="nav-btn" onclick="showSection('pricing')">💵 Pricing</button>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="app-content">
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="content-section active">
+                <h2>AI Dashboard</h2>
+                
+                <!-- Key Metrics -->
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <h4>Cash Available</h4>
+                        <p class="metric-value" id="cashAvailable">₹0</p>
+                    </div>
+                    <div class="metric-card">
+                        <h4>Outstanding Udhaar</h4>
+                        <p class="metric-value" id="outstandingUdhaar">₹0</p>
+                    </div>
+                    <div class="metric-card">
+                        <h4>Inventory Items</h4>
+                        <p class="metric-value" id="inventoryCount">0</p>
+                    </div>
+                    <div class="metric-card">
+                        <h4>Total Customers</h4>
+                        <p class="metric-value" id="customerCount">0</p>
                     </div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-icon">⚠️</div>
-                    <div class="stat-content">
-                        <h3 id="lowStockItems">0</h3>
-                        <p>Low Stock Items</p>
+
+                <!-- AI Status -->
+                <div class="card">
+                    <h3>🤖 AI Engine Status</h3>
+                    <div id="aiStatus">
+                        <p class="empty-state">Click "Run AI Analysis" to generate insights</p>
                     </div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-icon">💰</div>
-                    <div class="stat-content">
-                        <h3 id="totalUdhaar">₹0</h3>
-                        <p>Total Udhaar</p>
+
+                <!-- Critical Alerts -->
+                <div class="card">
+                    <h3>⚠️ Critical Alerts</h3>
+                    <div id="aiAlerts">
+                        <p class="empty-state">No alerts</p>
                     </div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-icon">🔔</div>
-                    <div class="stat-content">
-                        <h3 id="activeAlerts">0</h3>
-                        <p>Active Alerts</p>
+
+                <!-- AI Insights -->
+                <div class="card">
+                    <h3>🎯 AI Insights & Recommendations</h3>
+                    <div id="aiInsights">
+                        <p class="empty-state">No insights yet. Run AI analysis to get recommendations.</p>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <!-- Alerts Section -->
-            <div class="section-card">
-                <h3>🔔 Recent Alerts</h3>
-                <div id="dashboardAlerts" class="alerts-list"></div>
-            </div>
-
-            <!-- Recommendations Section -->
-            <div class="section-card">
-                <h3>💡 AI Recommendations</h3>
-                <div id="dashboardRecommendations" class="recommendations-list"></div>
-            </div>
-        </div>
-
-        <!-- Inventory Page -->
-        <div id="inventoryPage" class="page">
-            <div class="page-header">
+            <!-- Inventory Section -->
+            <section id="inventory" class="content-section">
                 <h2>Inventory Management</h2>
-                <button class="btn-primary" onclick="showAddItemModal()">+ Add Item</button>
-            </div>
-
-            <div class="filters">
-                <input type="text" id="searchInventory" placeholder="Search items..." onkeyup="filterInventory()">
-                <select id="categoryFilter" onchange="filterInventory()">
-                    <option value="">All Categories</option>
-                    <option value="groceries">Groceries</option>
-                    <option value="beverages">Beverages</option>
-                    <option value="snacks">Snacks</option>
-                    <option value="personal-care">Personal Care</option>
-                    <option value="household">Household</option>
-                </select>
-            </div>
-
-            <div id="inventoryList" class="inventory-grid"></div>
-        </div>
-
-        <!-- Udhaar Page -->
-        <div id="udhaarPage" class="page">
-            <div class="page-header">
-                <h2>Udhaar Management</h2>
-                <button class="btn-primary" onclick="showAddUdhaarModal()">+ Add Udhaar</button>
-            </div>
-
-            <div class="udhaar-summary">
-                <div class="summary-card">
-                    <h4>Total Outstanding</h4>
-                    <p class="amount" id="udhaarTotal">₹0</p>
+                
+                <div class="section-actions">
+                    <button onclick="showReorderPlan()" class="btn-ai">🤖 AI Reorder Plan</button>
                 </div>
-                <div class="summary-card">
-                    <h4>Total Customers</h4>
-                    <p class="count" id="udhaarCustomers">0</p>
-                </div>
-                <div class="summary-card">
-                    <h4>Overdue</h4>
-                    <p class="count overdue" id="udhaarOverdue">0</p>
-                </div>
-            </div>
 
-            <div class="filters">
-                <input type="text" id="searchUdhaar" placeholder="Search by customer name..." onkeyup="filterUdhaar()">
-                <select id="udhaarStatusFilter" onchange="filterUdhaar()">
-                    <option value="">All Status</option>
-                    <option value="PENDING">Pending</option>
-                    <option value="OVERDUE">Overdue</option>
-                    <option value="PAID">Paid</option>
-                </select>
-            </div>
-
-            <div id="udhaarList" class="udhaar-list"></div>
-        </div>
-
-        <!-- Forecast Page -->
-        <div id="forecastPage" class="page">
-            <div class="page-header">
-                <h2>Demand Forecast</h2>
-            </div>
-
-            <div class="forecast-controls" style="margin-bottom: 2rem; padding: 1.5rem; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Select Items:</label>
-                    <div id="forecastItemCheckboxes" style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; padding: 0.75rem;">
-                        <p style="color: #666;">Loading items...</p>
+                <div class="card">
+                    <div id="inventoryList">
+                        <p class="empty-state">No inventory items. Load demo data to get started.</p>
                     </div>
                 </div>
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Forecast Days:</label>
-                    <input type="number" id="forecastDays" value="7" min="1" max="30"
-                           style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px;">
+            </section>
+
+            <!-- Sales Section -->
+            <section id="sales" class="content-section">
+                <h2>Sales History</h2>
+                
+                <div class="card">
+                    <div id="salesList">
+                        <p class="empty-state">No sales recorded yet.</p>
+                    </div>
                 </div>
-                <button class="btn-primary" onclick="generateForecast()">🔄 Generate Forecast</button>
-            </div>
+            </section>
 
-            <div id="forecastList" class="forecast-list"></div>
-        </div>
-
-        <!-- Pricing Page -->
-        <div id="pricingPage" class="page">
-            <div class="page-header">
-                <h2>Pricing Recommendations</h2>
-                <button class="btn-primary" onclick="getPricingRecommendations()">🔄 Get Recommendations</button>
-            </div>
-
-            <div id="pricingList" class="pricing-list"></div>
-        </div>
-
-        <!-- OCR Page -->
-        <div id="ocrPage" class="page">
-            <div class="page-header">
-                <h2>Bill Scanner</h2>
-                <p>Upload bill/receipt images to extract data</p>
-            </div>
-
-            <div class="upload-section">
-                <div class="upload-area" id="uploadArea">
-                    <div class="upload-icon">📸</div>
-                    <p>Click to upload or drag & drop</p>
-                    <p class="upload-hint">Supports JPG, PNG</p>
-                    <input type="file" id="billImage" accept="image/*" onchange="processBill()" style="display:none;">
+            <!-- Udhaar Section -->
+            <section id="udhaar" class="content-section">
+                <h2>Udhaar Management</h2>
+                
+                <div class="section-actions">
+                    <button onclick="showCreditScores()" class="btn-ai">🤖 Credit Risk Scores</button>
                 </div>
-                <button class="btn-primary" onclick="document.getElementById('billImage').click()">Choose File</button>
-            </div>
 
-            <div id="ocrResult" class="ocr-result" style="display:none;"></div>
-        </div>
+                <div class="card">
+                    <div id="udhaarList">
+                        <p class="empty-state">No udhaar records.</p>
+                    </div>
+                </div>
+            </section>
 
+            <!-- Forecast Section -->
+            <section id="forecast" class="content-section">
+                <h2>Demand Forecast</h2>
+                
+                <div class="section-actions">
+                    <label>Days: <input type="number" id="forecastDays" value="7" min="1" max="14" style="width: 80px; padding: 0.5rem; border: 1px solid var(--border); border-radius: 0.5rem;"></label>
+                    <button onclick="generateForecasts()" class="btn-ai">🤖 Generate Forecasts</button>
+                </div>
+
+                <div class="card">
+                    <div id="forecastList">
+                        <p class="empty-state">Click "Generate Forecasts" to see AI predictions.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Pricing Section -->
+            <section id="pricing" class="content-section">
+                <h2>Pricing Intelligence</h2>
+                
+                <div class="section-actions">
+                    <button onclick="generatePricingRecommendations()" class="btn-ai">🤖 Optimize Pricing</button>
+                </div>
+
+                <div class="card">
+                    <div id="pricingList">
+                        <p class="empty-state">Click "Optimize Pricing" to get AI recommendations.</p>
+                    </div>
+                </div>
+            </section>
+        </main>
     </div>
 
-    <!-- Add Item Modal -->
-    <div id="addItemModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Add Inventory Item</h3>
-                <span class="close" onclick="closeModal('addItemModal')">&times;</span>
-            </div>
-            <div class="modal-body">
-                <label for="itemName">Item Name *</label>
-                <input type="text" id="itemName" placeholder="e.g., Rice 1kg" required>
-                
-                <label for="itemCategory">Category *</label>
-                <select id="itemCategory" required>
-                    <option value="">Select Category</option>
-                    <option value="groceries">Groceries</option>
-                    <option value="beverages">Beverages</option>
-                    <option value="snacks">Snacks</option>
-                    <option value="personal-care">Personal Care</option>
-                    <option value="household">Household</option>
-                </select>
-                
-                <label for="itemQuantity">Quantity *</label>
-                <input type="number" id="itemQuantity" placeholder="e.g., 50" required>
-                
-                <label for="itemUnit">Unit</label>
-                <input type="text" id="itemUnit" placeholder="e.g., kg, pcs, ltr" value="pcs">
-                
-                <label for="itemCostPrice">Cost Price (₹) *</label>
-                <input type="number" id="itemCostPrice" placeholder="e.g., 40" step="0.01" required>
-                
-                <label for="itemSellingPrice">Selling Price (₹) *</label>
-                <input type="number" id="itemSellingPrice" placeholder="e.g., 50" step="0.01" required>
-                
-                <label for="itemMinStock">Minimum Stock Level</label>
-                <input type="number" id="itemMinStock" placeholder="Alert when below this" value="10">
-                
-                <label for="itemExpiryDate">Expiry Date (Optional)</label>
-                <input type="date" id="itemExpiryDate">
-                
-                <button class="btn-primary" onclick="addInventoryItem()">➕ Add Item</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Add Udhaar Modal -->
-    <div id="addUdhaarModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Add Udhaar Entry</h3>
-                <span class="close" onclick="closeModal('addUdhaarModal')">&times;</span>
-            </div>
-            <div class="modal-body">
-                <label for="udhaarCustomerName">Customer Name *</label>
-                <input type="text" id="udhaarCustomerName" placeholder="e.g., Ramesh Kumar" required>
-                
-                <label for="udhaarAmount">Amount (₹) *</label>
-                <input type="number" id="udhaarAmount" placeholder="e.g., 500" step="0.01" required>
-                
-                <label for="udhaarDueDate">Due Date *</label>
-                <input type="date" id="udhaarDueDate" required min="">
-                
-                <label for="udhaarItems">Items (Optional)</label>
-                <textarea id="udhaarItems" placeholder="e.g., Rice, Oil, Sugar" rows="3"></textarea>
-                
-                <button class="btn-primary" onclick="addUdhaarEntry()">Add Udhaar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Record Payment Modal -->
-    <div id="paymentModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Record Payment</h3>
-                <span class="close" onclick="closeModal('paymentModal')">&times;</span>
-            </div>
-            <div class="modal-body">
-                <p>Customer: <strong id="paymentCustomerName"></strong></p>
-                <p>Outstanding: <strong id="paymentOutstanding"></strong></p>
-                <input type="hidden" id="paymentCustomerId">
-                <input type="number" id="paymentAmount" placeholder="Payment Amount" step="0.01" required>
-                <button class="btn-primary" onclick="recordPayment()">Record Payment</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Forgot Password Modal -->
-    <div id="forgotPasswordModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Reset Password</h3>
-                <span class="close" onclick="closeModal('forgotPasswordModal')">&times;</span>
-            </div>
-            <div class="modal-body">
-                <p>Enter your username, email, and new password to reset.</p>
-                <div class="form-group">
-                    <label for="resetUsername">Username *</label>
-                    <input type="text" id="resetUsername" placeholder="Your username" required>
-                </div>
-                <div class="form-group">
-                    <label for="resetEmail">Email *</label>
-                    <input type="email" id="resetEmail" placeholder="your@email.com" required>
-                </div>
-                <div class="form-group">
-                    <label for="resetNewPassword">New Password *</label>
-                    <input type="password" id="resetNewPassword" placeholder="Min 8 characters" required>
-                </div>
-                <div class="form-group">
-                    <label for="resetConfirmPassword">Confirm Password *</label>
-                    <input type="password" id="resetConfirmPassword" placeholder="Re-enter password" required>
-                </div>
-                <button class="btn-primary" onclick="simpleResetPassword()">Reset Password</button>
-                <div id="resetPasswordError" class="error-message"></div>
-            </div>
-        </div>
-    </div>
-
-    <script src="config.js"></script>
-    <script src="app.js"></script>
+    <script src="app-new.js"></script>
 </body>
 </html>

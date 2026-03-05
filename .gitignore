@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# CDK
+cdk.out/
+.cdk.staging/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Lambda packages
+*.zip
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+
+# Test files
+test-*.html
+debug.html
+diagnose.html
+simple-*.html

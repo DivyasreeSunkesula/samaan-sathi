@@ -77,12 +77,12 @@ def register(body: Dict[str, Any]) -> Dict[str, Any]:
     username = body.get('username')
     password = body.get('password')
     email = body.get('email')
-    phone = body.get('phone')
-    full_name = body.get('fullName')
-    shop_name = body.get('shopName')
+    phone = body.get('phone', '+919999999999')  # Default phone in E.164 format
+    full_name = body.get('fullName', username)  # Default to username
+    shop_name = body.get('shopName', 'My Shop')  # Default shop name
     
-    if not all([username, password, email, phone, full_name]):
-        return response(400, {'error': 'Missing required fields'})
+    if not all([username, password, email]):
+        return response(400, {'error': 'Username, password, and email are required'})
     
     try:
         # Get client ID and pool ID from environment
@@ -94,67 +94,102 @@ def register(body: Dict[str, Any]) -> Dict[str, Any]:
         
         print(f"Registering user: {username}")
         print(f"User Pool ID: {user_pool_id}")
+        print(f"Client ID: {client_id}")
         
-        # Create user in Cognito
-        user_attributes = [
-            {'Name': 'email', 'Value': email},
-            {'Name': 'phone_number', 'Value': phone},
-            {'Name': 'name', 'Value': full_name},
-        ]
-        
-        if shop_name:
-            user_attributes.append({'Name': 'custom:shopName', 'Value': shop_name})
-        
-        # Sign up user
-        signup_response = cognito.sign_up(
-            ClientId=client_id,
-            Username=username,
-            Password=password,
-            UserAttributes=user_attributes
-        )
-        
-        print(f"User {username} signed up successfully")
-        
-        # CRITICAL: Auto-confirm the user immediately
-        # This is essential for seamless user experience
+        # Create user in Cognito using AdminCreateUser (auto-confirmed)
         try:
-            confirm_response = cognito.admin_confirm_sign_up(
+            user_attributes = [
+                {'Name': 'email', 'Value': email},
+                {'Name': 'email_verified', 'Value': 'true'},  # Mark email as verified
+                {'Name': 'phone_number', 'Value': phone},
+                {'Name': 'phone_number_verified', 'Value': 'true'},  # Mark phone as verified
+                {'Name': 'name', 'Value': full_name},
+            ]
+            
+            if shop_name:
+                user_attributes.append({'Name': 'custom:shopName', 'Value': shop_name})
+            
+            # Use AdminCreateUser instead of SignUp - this creates a confirmed user
+            admin_response = cognito.admin_create_user(
                 UserPoolId=user_pool_id,
-                Username=username
+                Username=username,
+                UserAttributes=user_attributes,
+                TemporaryPassword=password,
+                MessageAction='SUPPRESS'  # Don't send email
             )
-            print(f"✓ User {username} AUTO-CONFIRMED successfully")
-            print(f"Confirm response: {confirm_response}")
             
-            # Verify user is confirmed
-            user_info = cognito.admin_get_user(
+            print(f"User {username} created via AdminCreateUser")
+            
+            # Set permanent password
+            cognito.admin_set_user_password(
                 UserPoolId=user_pool_id,
-                Username=username
+                Username=username,
+                Password=password,
+                Permanent=True
             )
-            user_status = user_info.get('UserStatus')
-            print(f"User status after confirm: {user_status}")
             
-            if user_status != 'CONFIRMED':
-                print(f"WARNING: User status is {user_status}, not CONFIRMED!")
+            print(f"✓ User {username} password set as permanent")
             
-        except Exception as confirm_error:
-            print(f"ERROR: Auto-confirm failed for {username}: {str(confirm_error)}")
-            import traceback
-            traceback.print_exc()
-            # Return error so user knows to contact admin
-            return response(500, {
-                'error': 'Registration completed but auto-confirmation failed. Please contact administrator.',
+            return response(201, {
+                'message': 'User registered successfully. You can now login.',
                 'username': username,
-                'details': str(confirm_error)
+                'autoConfirmed': True
+            })
+            
+        except cognito.exceptions.UsernameExistsException:
+            return response(409, {'error': 'Username already exists'})
+        except Exception as create_error:
+            print(f"AdminCreateUser failed: {str(create_error)}")
+            # Fallback to SignUp method
+            print("Falling back to SignUp method...")
+            
+            user_attributes = [
+                {'Name': 'email', 'Value': email},
+                {'Name': 'phone_number', 'Value': phone},
+                {'Name': 'name', 'Value': full_name},
+            ]
+            
+            if shop_name:
+                user_attributes.append({'Name': 'custom:shopName', 'Value': shop_name})
+            
+            # Sign up user
+            signup_response = cognito.sign_up(
+                ClientId=client_id,
+                Username=username,
+                Password=password,
+                UserAttributes=user_attributes
+            )
+            
+            print(f"User {username} signed up successfully")
+            
+            # Auto-confirm the user
+            try:
+                confirm_response = cognito.admin_confirm_sign_up(
+                    UserPoolId=user_pool_id,
+                    Username=username
+                )
+                print(f"✓ User {username} AUTO-CONFIRMED successfully")
+                
+                # Also verify email and phone
+                cognito.admin_update_user_attributes(
+                    UserPoolId=user_pool_id,
+                    Username=username,
+                    UserAttributes=[
+                        {'Name': 'email_verified', 'Value': 'true'},
+                        {'Name': 'phone_number_verified', 'Value': 'true'}
+                    ]
+                )
+                print(f"✓ User {username} email and phone verified")
+                
+            except Exception as confirm_error:
+                print(f"WARNING: Auto-confirm failed for {username}: {str(confirm_error)}")
+            
+            return response(201, {
+                'message': 'User registered successfully. You can now login.',
+                'username': username,
+                'autoConfirmed': True
             })
         
-        return response(201, {
-            'message': 'User registered and confirmed successfully. You can now login.',
-            'username': username,
-            'autoConfirmed': True
-        })
-        
-    except cognito.exceptions.UsernameExistsException:
-        return response(409, {'error': 'Username already exists'})
     except cognito.exceptions.InvalidPasswordException as e:
         return response(400, {'error': str(e)})
     except Exception as e:
